@@ -312,14 +312,14 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
         </div>
       </div>
 
-      <div className="flex flex-row overflow-x-auto gap-6 pb-10 snap-x snap-mandatory hide-scrollbar min-h-[600px] -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10 min-h-[600px]">
         {columns.map(col => (
           <div 
             key={col.status} 
             onDragOver={(e) => handleDragOver(e, col.status)}
             onDragLeave={() => setDragOverCol(null)}
             onDrop={(e) => handleDrop(e, col.status)}
-            className={`flex-shrink-0 w-[85vw] md:flex-1 md:min-w-[320px] snap-center rounded-[2.5rem] p-5 flex flex-col h-full transition-all duration-300 border ${
+            className={`rounded-[2.5rem] p-5 flex flex-col h-full transition-all duration-300 border ${
               dragOverCol === col.status ? 'bg-indigo-50 border-2 border-dashed border-indigo-400' : 'bg-slate-100/30 border-transparent shadow-inner'
             }`}
           >
@@ -329,7 +329,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
                 {filteredTasks.filter(t => t.status === col.status).length}
               </span>
             </div>
-            <div className="flex-1 space-y-2 w-full">
+            <div className="flex-1 space-y-4 w-full overflow-y-auto hide-scrollbar max-h-[800px]">
               {filteredTasks.filter(t => t.status === col.status).map(task => (
                 <TaskCard 
                   key={task.id} 
