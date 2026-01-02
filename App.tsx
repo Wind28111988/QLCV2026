@@ -191,7 +191,7 @@ const App: React.FC = () => {
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-400 shadow-sm bg-white shrink-0 p-1 flex items-center justify-center">
             <img 
-              src="https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png" 
+              src="https://drive.google.com/file/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds/view?usp=sharing" 
               alt="Logo" 
               className="w-full h-full object-contain"
             />

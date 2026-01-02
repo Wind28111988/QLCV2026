@@ -84,7 +84,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
               <div className="absolute inset-0 bg-amber-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
               <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-amber-400 shadow-xl bg-white p-2 flex items-center justify-center">
                 <img 
-                  src="https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png" 
+                  src="https://drive.google.com/file/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds/view?usp=sharing" 
                   alt="Logo Thuế" 
                   className="w-full h-full object-contain"
                 />
