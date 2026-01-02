@@ -26,12 +26,10 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
     setIsLoggingIn(true);
     setError('');
 
-    // Xử lý username: cắt khoảng trắng, thêm domain nếu thiếu
     const cleanUsername = username.trim().toLowerCase();
     const cleanPassword = password.trim();
     const fullEmail = cleanUsername.includes('@') ? cleanUsername : `${cleanUsername}@gdt.gov.vn`;
     
-    // Tìm kiếm trong danh sách users đã tải từ Supabase
     const user = users.find(u => 
       u.email.toLowerCase() === fullEmail && 
       u.password === cleanPassword
@@ -78,45 +76,41 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-800 to-indigo-950">
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20">
-        <div className="p-8 md:p-12">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
+      <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white/20">
+        <div className="p-10 md:p-14">
           <div className="text-center mb-10">
-            <div className="w-24 h-24 mx-auto mb-6 relative group">
-              <div className="absolute inset-0 bg-amber-400 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-amber-100 shadow-xl bg-white flex items-center justify-center">
+            <div className="w-28 h-28 mx-auto mb-8 relative">
+              <div className="absolute inset-0 bg-amber-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-amber-400 shadow-xl bg-white p-2 flex items-center justify-center">
                 <img 
-                  src="https://raw.githubusercontent.com/t-phong/tax-logo/main/logo.png" 
+                  src="https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png" 
                   alt="Logo Thuế" 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback nếu không có URL ảnh
-                    e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
-                  }}
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Thuế TP Hải Phòng</h1>
-            <p className="text-slate-500 mt-2 font-medium">Ứng dụng quản lý công việc</p>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-tight">Thuế TP Hải Phòng</h1>
+            <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-[0.2em]">Ứng dụng quản lý công việc</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
             {error && (
-              <div className="p-4 bg-red-50 text-red-600 text-xs rounded-2xl border border-red-100 font-bold flex items-start animate-in fade-in slide-in-from-top-1">
+              <div className="p-4 bg-red-50 text-red-600 text-[11px] rounded-2xl border border-red-100 font-bold flex items-start animate-in fade-in slide-in-from-top-1">
                 <ShieldAlert size={16} className="mr-2 shrink-0" />
                 {error}
               </div>
             )}
             
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tài khoản (Email)</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tài khoản công vụ</label>
               <div className="relative group">
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ví dụ: nhphong.hph"
+                  placeholder="nhphong.hph"
                   className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
                 />
                 {!username.includes('@') && (
@@ -148,7 +142,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-bold"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
               />
             </div>
 
@@ -166,11 +160,11 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
       {/* Modal Khôi phục */}
       {isRecoveryModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden relative animate-in zoom-in duration-300">
-            <button onClick={() => setIsRecoveryModalOpen(false)} className="absolute right-6 top-6 text-slate-400 hover:text-slate-800 transition-colors"><X size={24} /></button>
-            <div className="p-10">
+          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden relative animate-in zoom-in duration-300">
+            <button onClick={() => setIsRecoveryModalOpen(false)} className="absolute right-8 top-8 text-slate-400 hover:text-slate-800 transition-colors"><X size={24} /></button>
+            <div className="p-12">
               <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mb-6"><KeyRound size={32} /></div>
-              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">Khôi phục</h2>
+              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-2">Khôi phục mật khẩu</h2>
               {recoveryMessage && (
                 <div className={`p-4 rounded-2xl mb-6 text-xs font-bold border flex items-start space-x-3 ${
                   recoveryMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
@@ -195,7 +189,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
                     required
                     value={recoveryCode}
                     onChange={(e) => setRecoveryCode(e.target.value)}
-                    placeholder="Nhập mã bảo mật hệ thống..."
+                    placeholder="Mã bảo mật hệ thống..."
                     className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm font-mono font-black outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 )}

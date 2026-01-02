@@ -189,14 +189,11 @@ const App: React.FC = () => {
       
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-100 shadow-sm bg-white shrink-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-400 shadow-sm bg-white shrink-0 p-1 flex items-center justify-center">
             <img 
-              src="https://raw.githubusercontent.com/t-phong/tax-logo/main/logo.png" 
+              src="https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png" 
               alt="Logo" 
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
-              }}
+              className="w-full h-full object-contain"
             />
           </div>
           <span className="font-black text-slate-800 uppercase tracking-tight text-xs">Quản lý công việc</span>

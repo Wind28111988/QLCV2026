@@ -57,14 +57,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
       `}>
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-100 shadow-md bg-white shrink-0">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-400 shadow-md bg-white shrink-0 p-1 flex items-center justify-center">
               <img 
-                src="https://raw.githubusercontent.com/t-phong/tax-logo/main/logo.png" 
+                src="https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png" 
                 alt="Logo" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
-                }}
+                className="w-full h-full object-contain"
               />
             </div>
             <span className="text-sm lg:text-base font-black tracking-tight text-slate-800 uppercase leading-tight">Quản lý<br/>công việc</span>
