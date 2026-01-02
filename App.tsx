@@ -102,7 +102,8 @@ const App: React.FC = () => {
       id: Math.random().toString(36).substr(2, 9),
       userId: currentUser.id,
       content,
-      startTime: Date.now(),
+      createdAt: Date.now(),
+      startTime: undefined, // Không có startTime khi vừa tạo (Cần làm)
       status: TaskStatus.TO_DO, 
       complexity,
       leadId: leadId || currentUser.id,
@@ -125,11 +126,18 @@ const App: React.FC = () => {
   const updateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+
+    // RÀNG BUỘC: Không cho phép nhảy cóc từ Cần làm sang Hoàn thành
+    if (task.status === TaskStatus.TO_DO && newStatus === TaskStatus.COMPLETED) {
+      alert("Công việc phải được bắt đầu thực hiện (Đang làm) trước khi có thể Hoàn thành.");
+      return;
+    }
     
     const updates: Partial<Task> = {
       status: newStatus,
       completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : undefined,
-      startTime: (newStatus === TaskStatus.IN_PROGRESS && task.status === TaskStatus.TO_DO) ? Date.now() : task.startTime
+      // Ghi nhận startTime khi lần đầu tiên chuyển sang IN_PROGRESS
+      startTime: (newStatus === TaskStatus.IN_PROGRESS && !task.startTime) ? Date.now() : task.startTime
     };
     
     setIsSyncing(true);

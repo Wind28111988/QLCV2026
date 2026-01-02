@@ -41,14 +41,15 @@ export interface Task {
   id: string;
   userId: string;
   content: string;
-  startTime: number;
-  completedTime?: number; // Sử dụng optional (undefined) thay vì null
+  startTime?: number; // Thay đổi thành optional: Thời điểm bắt đầu làm
+  completedTime?: number; 
   status: TaskStatus;
   complexity: TaskComplexity;
   leadId: string;
   collaboratorIds: string[];
   unit: string;
   attachments?: Attachment[];
+  createdAt: number; // Thêm trường thời điểm tạo công việc
 }
 
 export interface DashboardStats {

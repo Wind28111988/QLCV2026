@@ -29,20 +29,21 @@ export const cloudStorage = {
 
   async getTasks(): Promise<Task[]> {
     try {
-      const { data, error } = await supabase.from('tasks').select('*').order('startTime', { ascending: false });
+      const { data, error } = await supabase.from('tasks').select('*').order('createdAt', { ascending: false });
       if (error) throw error;
       return (data || []).map((t: any) => ({
         id: String(t.id),
         userId: String(t.userId),
         content: String(t.content),
-        startTime: Number(t.startTime),
-        completedTime: t.completedTime ? Number(t.completedTime) : undefined, // Chuyển null thành undefined
+        startTime: t.startTime ? Number(t.startTime) : undefined,
+        completedTime: t.completedTime ? Number(t.completedTime) : undefined,
         status: t.status,
         complexity: t.complexity,
         leadId: String(t.leadId),
         collaboratorIds: t.collaboratorIds || [],
         unit: String(t.unit),
-        attachments: t.attachments || []
+        attachments: t.attachments || [],
+        createdAt: Number(t.createdAt || t.startTime || Date.now())
       })) as Task[];
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -80,14 +81,15 @@ export const cloudStorage = {
         id: task.id,
         userId: task.userId, 
         content: task.content,
-        startTime: task.startTime,
-        completedTime: task.completedTime || null, // Supabase nhận null để lưu vào DB
+        startTime: task.startTime || null,
+        completedTime: task.completedTime || null,
         status: task.status,
         complexity: task.complexity,
         leadId: task.leadId,
         collaboratorIds: task.collaboratorIds || [],
         unit: task.unit,
-        attachments: task.attachments || []
+        attachments: task.attachments || [],
+        createdAt: task.createdAt
       });
       if (error) throw error;
       return { success: true };
@@ -99,8 +101,11 @@ export const cloudStorage = {
 
   async updateTask(taskId: string, updates: Partial<Task>): Promise<{ success: boolean; error?: any }> {
     try {
-      // Chuyển undefined thành null khi gửi lên Supabase để clear dữ liệu nếu cần
       const dataToUpdate = { ...updates };
+      // Đảm bảo null được gửi thay vì undefined cho các trường thời gian
+      if ('startTime' in dataToUpdate && dataToUpdate.startTime === undefined) {
+        (dataToUpdate as any).startTime = null;
+      }
       if ('completedTime' in dataToUpdate && dataToUpdate.completedTime === undefined) {
         (dataToUpdate as any).completedTime = null;
       }

@@ -30,6 +30,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isEditing = editingTaskId === task.id;
 
   const formatDuration = (ms: number) => {
+    if (ms <= 0) return "Chờ...";
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -45,6 +46,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
       default: return 'bg-sky-100 text-sky-700 border-sky-200';
     }
   };
+
+  // Tính toán thời gian hiển thị
+  const durationText = useMemo(() => {
+    if (task.status === TaskStatus.TO_DO || !task.startTime) {
+      return "Chưa bắt đầu";
+    }
+    if (task.status === TaskStatus.IN_PROGRESS) {
+      return formatDuration(now - task.startTime);
+    }
+    if (task.status === TaskStatus.COMPLETED && task.completedTime) {
+      return formatDuration(task.completedTime - task.startTime);
+    }
+    return "N/A";
+  }, [task.status, task.startTime, task.completedTime, now]);
 
   if (isEditing) {
     return (
@@ -137,9 +152,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       <div className="flex items-center justify-between pt-4 border-t border-slate-100 pl-1">
         <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <Clock size={14} className="mr-1.5 text-slate-300" />
-          {task.status === TaskStatus.COMPLETED 
-            ? formatDuration((task.completedTime || 0) - task.startTime) 
-            : formatDuration(now - task.startTime)}
+          {durationText}
         </div>
         <div className="flex space-x-2">
           {task.status === TaskStatus.TO_DO && (
