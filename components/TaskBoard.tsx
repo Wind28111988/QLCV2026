@@ -3,15 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Task, TaskStatus, TaskComplexity, Attachment } from '../types';
 import { Clock, CheckCircle2, PlayCircle, Plus, Edit2, Trash2, Search, X, Check, Paperclip, FileText, Image as ImageIcon, Eye } from 'lucide-react';
 
-interface TaskBoardProps {
-  tasks: Task[];
-  onAddTask: (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[]) => void;
-  onUpdateStatus: (taskId: string, status: TaskStatus) => void;
-  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
-  onDeleteTask: (taskId: string) => void;
-}
-
-const TaskCard: React.FC<{ 
+interface TaskCardProps { 
   task: Task; 
   now: number;
   editingTaskId: string | null;
@@ -26,7 +18,9 @@ const TaskCard: React.FC<{
   onUpdateStatus: (id: string, s: TaskStatus) => void;
   onViewAttachment: (att: Attachment) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
-}> = ({ 
+}
+
+const TaskCard: React.FC<TaskCardProps> = ({ 
   task, now, editingTaskId, editContent, editComplexity, 
   setEditContent, setEditComplexity, handleSaveEdit, 
   setEditingTaskId, handleStartEdit, onDeleteTask, onUpdateStatus, onViewAttachment,
@@ -54,7 +48,7 @@ const TaskCard: React.FC<{
 
   if (isEditing) {
     return (
-      <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-indigo-500 mb-4 animate-in zoom-in-95">
+      <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-indigo-500 mb-4 animate-in zoom-in-95 w-full">
         <textarea
           autoFocus
           value={editContent}
@@ -82,7 +76,7 @@ const TaskCard: React.FC<{
     <div 
       draggable={isDraggable} 
       onDragStart={(e) => onDragStart(e, task.id)}
-      className="bg-white p-4 md:p-5 shadow-sm border border-slate-200 rounded-[1.5rem] mb-4 group hover:border-indigo-300 transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative"
+      className="bg-white p-4 md:p-5 shadow-sm border border-slate-200 rounded-[1.5rem] mb-4 group hover:border-indigo-300 transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full"
     >
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
@@ -120,7 +114,7 @@ const TaskCard: React.FC<{
       </div>
       
       <div className="pl-1 mb-5">
-        <p className="font-bold text-slate-700 leading-relaxed text-lg whitespace-pre-wrap">{task.content}</p>
+        <p className="font-bold text-slate-700 leading-relaxed text-lg whitespace-pre-wrap break-words">{task.content}</p>
       </div>
       
       {task.attachments && task.attachments.length > 0 && (
@@ -173,6 +167,14 @@ const TaskCard: React.FC<{
     </div>
   );
 };
+
+interface TaskBoardProps {
+  tasks: Task[];
+  onAddTask: (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[]) => void;
+  onUpdateStatus: (taskId: string, status: TaskStatus) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
+  onDeleteTask: (taskId: string) => void;
+}
 
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus, onUpdateTask, onDeleteTask }) => {
   const [newContent, setNewContent] = useState('');
@@ -317,8 +319,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
             onDragOver={(e) => handleDragOver(e, col.status)}
             onDragLeave={() => setDragOverCol(null)}
             onDrop={(e) => handleDrop(e, col.status)}
-            className={`flex-shrink-0 w-[85vw] md:w-1/3 snap-center rounded-[2.5rem] p-5 flex flex-col h-full transition-all duration-300 border ${
-              dragOverCol === col.status ? 'bg-indigo-50 border-2 border-dashed border-indigo-400' : 'bg-slate-100/30 border-transparent'
+            className={`flex-shrink-0 w-[85vw] md:flex-1 md:min-w-[320px] snap-center rounded-[2.5rem] p-5 flex flex-col h-full transition-all duration-300 border ${
+              dragOverCol === col.status ? 'bg-indigo-50 border-2 border-dashed border-indigo-400' : 'bg-slate-100/30 border-transparent shadow-inner'
             }`}
           >
             <div className="flex items-center justify-between mb-6 px-3">
@@ -327,7 +329,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
                 {filteredTasks.filter(t => t.status === col.status).length}
               </span>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2 w-full">
               {filteredTasks.filter(t => t.status === col.status).map(task => (
                 <TaskCard 
                   key={task.id} 

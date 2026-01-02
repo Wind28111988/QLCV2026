@@ -103,7 +103,6 @@ const App: React.FC = () => {
       userId: currentUser.id,
       content,
       startTime: Date.now(),
-      // completedTime: undefined (mặc định do interface)
       status: TaskStatus.TO_DO, 
       complexity,
       leadId: leadId || currentUser.id,
@@ -173,7 +172,7 @@ const App: React.FC = () => {
   if (!currentUser) return <Login users={users} onLogin={handleLogin} onResetPassword={handleResetPassword} />;
   if (currentUser.mustChangePassword) return <ChangePassword onComplete={handleChangePassword} />;
 
-  const isAdmin = currentUser.notes === 'AD';
+  const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
 
   return (
@@ -208,7 +207,6 @@ const App: React.FC = () => {
               {isSyncing && <RefreshCw className="text-indigo-400 animate-spin" size={24} />}
             </h1>
             <div className="flex items-center mt-1 space-x-2">
-               <p className="text-slate-500 text-sm font-medium uppercase tracking-widest">Dữ liệu: <span className="text-indigo-600 font-bold">Supabase Realtime</span></p>
                {syncError && (
                  <div className="flex items-center text-rose-500 text-[10px] font-black uppercase bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
                    <AlertTriangle size={12} className="mr-1" /> {syncError}

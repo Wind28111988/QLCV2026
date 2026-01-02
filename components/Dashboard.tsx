@@ -56,6 +56,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUserClick }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [detailModal, setDetailModal] = useState<{ isOpen: boolean; title: string; tasks: Task[] }>({
     isOpen: false,
@@ -63,12 +64,21 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
     tasks: []
   });
 
-  const isGlobalAdmin = currentUser.notes === 'AD';
+  const isAD1 = currentUser.notes === 'AD1';
+  const isAD2 = currentUser.notes === 'AD2';
+  const isRegularUser = !isAD1 && !isAD2;
+
+  const units = useMemo(() => Array.from(new Set(users.map(u => u.unit))), [users]);
   
   const accessibleUsers = useMemo(() => {
-    if (isGlobalAdmin) return users;
-    return users.filter(u => u.unit === currentUser.unit);
-  }, [users, currentUser.unit, isGlobalAdmin]);
+    if (isAD1) {
+      return selectedUnit ? users.filter(u => u.unit === selectedUnit) : users;
+    }
+    if (isAD2) {
+      return users.filter(u => u.unit === currentUser.unit);
+    }
+    return [currentUser];
+  }, [users, currentUser, isAD1, isAD2, selectedUnit]);
 
   const getPoints = (complexity: TaskComplexity) => {
     switch (complexity) {
@@ -90,9 +100,16 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
 
   const stats = useMemo(() => {
     const filtered = tasks.filter(t => {
-      const canSee = isGlobalAdmin || (t.unit === currentUser.unit);
-      if (!canSee) return false;
+      // Logic lọc theo quyền
+      let hasAccess = false;
+      if (isAD1) hasAccess = true;
+      else if (isAD2) hasAccess = t.unit === currentUser.unit;
+      else hasAccess = (t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id));
 
+      if (!hasAccess) return false;
+
+      // Lọc theo bộ lọc người dùng chọn
+      const matchesUnit = isAD1 && selectedUnit ? t.unit === selectedUnit : true;
       const matchesStaff = selectedStaffId 
         ? (t.userId === selectedStaffId || t.leadId === selectedStaffId || t.collaboratorIds.includes(selectedStaffId)) 
         : true;
@@ -101,14 +118,14 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
       const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
 
-      return matchesStaff && matchesStart && matchesEnd;
+      return matchesUnit && matchesStaff && matchesStart && matchesEnd;
     });
 
     const todoTasks = filtered.filter(t => t.status === TaskStatus.TO_DO);
     const inProgressTasks = filtered.filter(t => t.status === TaskStatus.IN_PROGRESS);
     const completedTasks = filtered.filter(t => t.status === TaskStatus.COMPLETED);
 
-    const performanceData = accessibleUsers
+    const performanceData = (isRegularUser ? [currentUser] : accessibleUsers)
       .map(u => {
         const assignedCount = filtered.filter(t => t.userId === u.id).length;
         const leadTasks = filtered.filter(t => t.leadId === u.id && t.status === TaskStatus.COMPLETED);
@@ -137,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       complexityChartData,
       performanceData
     };
-  }, [tasks, users, currentUser, isGlobalAdmin, startDate, endDate, selectedStaffId, accessibleUsers]);
+  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, startDate, endDate, selectedUnit, selectedStaffId, accessibleUsers]);
 
   const COLORS = ['#6366f1', '#f59e0b', '#ef4444'];
 
@@ -148,15 +165,32 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   return (
     <div className="space-y-6 pb-12">
       <div className="bg-white p-4 md:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-end gap-4">
-        <div className="w-full lg:w-72">
-           <SearchableSelect
-            label="Lọc theo nhân sự"
-            options={staffOptions}
-            value={selectedStaffId}
-            onChange={setSelectedStaffId}
-            placeholder="Tất cả nhân sự"
-          />
-        </div>
+        
+        {isAD1 && (
+          <div className="w-full lg:w-64">
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Lọc theo đơn vị</label>
+            <select
+              value={selectedUnit}
+              onChange={(e) => { setSelectedUnit(e.target.value); setSelectedStaffId(''); }}
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+            >
+              <option value="">Tất cả đơn vị</option>
+              {units.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+        )}
+
+        {(isAD1 || isAD2) && (
+          <div className="w-full lg:w-72">
+            <SearchableSelect
+              label="Lọc theo nhân sự"
+              options={staffOptions}
+              value={selectedStaffId}
+              onChange={setSelectedStaffId}
+              placeholder="Tất cả nhân sự"
+            />
+          </div>
+        )}
         
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:flex-1">
           <SmartDateInput label="Từ ngày" value={startDate} onChange={setStartDate} />
@@ -164,7 +198,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
         </div>
 
         <button 
-          onClick={() => { setStartDate(''); setEndDate(''); setSelectedStaffId(''); }}
+          onClick={() => { setStartDate(''); setEndDate(''); setSelectedStaffId(''); setSelectedUnit(''); }}
           className="w-full sm:w-auto bg-slate-50 text-slate-500 px-6 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-xs font-black uppercase tracking-widest border border-slate-200"
         >
           Xóa
