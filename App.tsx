@@ -103,7 +103,7 @@ const App: React.FC = () => {
       userId: currentUser.id,
       content,
       startTime: Date.now(),
-      completedTime: null,
+      // completedTime: undefined (mặc định do interface)
       status: TaskStatus.TO_DO, 
       complexity,
       leadId: leadId || currentUser.id,
@@ -129,14 +129,14 @@ const App: React.FC = () => {
     
     const updates: Partial<Task> = {
       status: newStatus,
-      completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : null,
+      completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : undefined,
       startTime: (newStatus === TaskStatus.IN_PROGRESS && task.status === TaskStatus.TO_DO) ? Date.now() : task.startTime
     };
     
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
     if (result.success) {
-      setTasks((prev: Task[]) => prev.map((t: Task) => t.id === taskId ? ({ ...t, ...updates } as Task) : t));
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
     }
     setIsSyncing(false);
   };
@@ -145,7 +145,7 @@ const App: React.FC = () => {
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
     if (result.success) {
-      setTasks((prev: Task[]) => prev.map((t: Task) => t.id === taskId ? ({ ...t, ...updates } as Task) : t));
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
     }
     setIsSyncing(false);
   };

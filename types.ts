@@ -42,7 +42,7 @@ export interface Task {
   userId: string;
   content: string;
   startTime: number;
-  completedTime: number | null; // Bỏ dấu ? và dùng null tường minh
+  completedTime?: number; // Sử dụng optional (undefined) thay vì null
   status: TaskStatus;
   complexity: TaskComplexity;
   leadId: string;

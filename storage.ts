@@ -36,7 +36,7 @@ export const cloudStorage = {
         userId: String(t.userId),
         content: String(t.content),
         startTime: Number(t.startTime),
-        completedTime: t.completedTime ? Number(t.completedTime) : null,
+        completedTime: t.completedTime ? Number(t.completedTime) : undefined, // Chuyển null thành undefined
         status: t.status,
         complexity: t.complexity,
         leadId: String(t.leadId),
@@ -81,7 +81,7 @@ export const cloudStorage = {
         userId: task.userId, 
         content: task.content,
         startTime: task.startTime,
-        completedTime: task.completedTime || null,
+        completedTime: task.completedTime || null, // Supabase nhận null để lưu vào DB
         status: task.status,
         complexity: task.complexity,
         leadId: task.leadId,
@@ -99,7 +99,13 @@ export const cloudStorage = {
 
   async updateTask(taskId: string, updates: Partial<Task>): Promise<{ success: boolean; error?: any }> {
     try {
-      const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+      // Chuyển undefined thành null khi gửi lên Supabase để clear dữ liệu nếu cần
+      const dataToUpdate = { ...updates };
+      if ('completedTime' in dataToUpdate && dataToUpdate.completedTime === undefined) {
+        (dataToUpdate as any).completedTime = null;
+      }
+      
+      const { error } = await supabase.from('tasks').update(dataToUpdate).eq('id', taskId);
       if (error) throw error;
       return { success: true };
     } catch (error) {
