@@ -82,8 +82,19 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20">
         <div className="p-8 md:p-12">
           <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl font-black shadow-xl shadow-indigo-200">
-              Q
+            <div className="w-24 h-24 mx-auto mb-6 relative group">
+              <div className="absolute inset-0 bg-amber-400 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-amber-100 shadow-xl bg-white flex items-center justify-center">
+                <img 
+                  src="https://raw.githubusercontent.com/t-phong/tax-logo/main/logo.png" 
+                  alt="Logo Thuế" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback nếu không có URL ảnh
+                    e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
+                  }}
+                />
+              </div>
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Thuế TP Hải Phòng</h1>
             <p className="text-slate-500 mt-2 font-medium">Ứng dụng quản lý công việc</p>

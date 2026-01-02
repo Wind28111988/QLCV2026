@@ -189,8 +189,17 @@ const App: React.FC = () => {
       
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-lg">Q</div>
-          <span className="font-black text-slate-800 uppercase tracking-tight text-sm">Quản lý GDT</span>
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-100 shadow-sm bg-white shrink-0">
+            <img 
+              src="https://raw.githubusercontent.com/t-phong/tax-logo/main/logo.png" 
+              alt="Logo" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
+              }}
+            />
+          </div>
+          <span className="font-black text-slate-800 uppercase tracking-tight text-xs">Quản lý công việc</span>
         </div>
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-500"><Menu size={24} /></button>
       </div>

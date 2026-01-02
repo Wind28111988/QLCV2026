@@ -56,9 +56,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center space-x-3 text-indigo-600">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-100">Q</div>
-            <span className="text-xl font-black tracking-tight text-slate-800 uppercase">Hệ quản trị</span>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-100 shadow-md bg-white shrink-0">
+              <img 
+                src="https://raw.githubusercontent.com/t-phong/tax-logo/main/logo.png" 
+                alt="Logo" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
+                }}
+              />
+            </div>
+            <span className="text-sm lg:text-base font-black tracking-tight text-slate-800 uppercase leading-tight">Quản lý<br/>công việc</span>
           </div>
           <button 
             onClick={onClose}
@@ -90,8 +99,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
 
         <div className="p-4 border-t border-slate-100">
           <div className="mb-4 p-4 bg-slate-50 rounded-2xl flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 font-black shrink-0">
-              {currentUser.name.charAt(0)}
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 font-black shrink-0 overflow-hidden">
+               <img src={`https://picsum.photos/seed/${currentUser.id}/100`} alt="Ava" className="w-full h-full object-cover opacity-80" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-black text-slate-800 truncate uppercase">{currentUser.name}</p>
