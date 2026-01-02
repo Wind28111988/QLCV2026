@@ -195,7 +195,7 @@ const App: React.FC = () => {
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-500"><Menu size={24} /></button>
       </div>
 
-      <main className="flex-1 p-4 md:p-8 lg:p-10 max-w-full">
+      <main className="flex-1 min-w-0 p-4 md:p-8 lg:p-10">
         <header className="mb-6 md:mb-10 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">

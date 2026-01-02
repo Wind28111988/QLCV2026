@@ -76,7 +76,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     <div 
       draggable={isDraggable} 
       onDragStart={(e) => onDragStart(e, task.id)}
-      className="bg-white p-4 md:p-5 shadow-sm border border-slate-200 rounded-[1.5rem] mb-4 group hover:border-indigo-300 transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full"
+      className="bg-white p-4 md:p-5 shadow-sm border border-slate-200 rounded-[1.5rem] mb-4 group hover:border-indigo-300 transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full overflow-hidden"
     >
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
@@ -114,7 +114,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       </div>
       
       <div className="pl-1 mb-5">
-        <p className="font-bold text-slate-700 leading-relaxed text-lg whitespace-pre-wrap break-words">{task.content}</p>
+        <p className="font-bold text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words">{task.content}</p>
       </div>
       
       {task.attachments && task.attachments.length > 0 && (
@@ -135,8 +135,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
       )}
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-100 pl-1">
-        <div className="flex items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-          <Clock size={16} className="mr-2 text-slate-300" />
+        <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <Clock size={14} className="mr-1.5 text-slate-300" />
           {task.status === TaskStatus.COMPLETED 
             ? formatDuration((task.completedTime || 0) - task.startTime) 
             : formatDuration(now - task.startTime)}
@@ -149,7 +149,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, TaskStatus.IN_PROGRESS); }} 
               className="text-indigo-600 hover:scale-110 transition-transform"
             >
-              <PlayCircle size={32} />
+              <PlayCircle size={28} />
             </button>
           )}
           {task.status === TaskStatus.IN_PROGRESS && (
@@ -159,7 +159,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               onClick={(e) => { e.stopPropagation(); onUpdateStatus(task.id, TaskStatus.COMPLETED); }} 
               className="text-emerald-600 hover:scale-110 transition-transform"
             >
-              <CheckCircle2 size={32} />
+              <CheckCircle2 size={28} />
             </button>
           )}
         </div>
@@ -257,7 +257,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -312,14 +312,14 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10 min-h-[600px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-10 min-h-[600px] w-full items-start auto-cols-fr">
         {columns.map(col => (
           <div 
             key={col.status} 
             onDragOver={(e) => handleDragOver(e, col.status)}
             onDragLeave={() => setDragOverCol(null)}
             onDrop={(e) => handleDrop(e, col.status)}
-            className={`rounded-[2.5rem] p-5 flex flex-col h-full transition-all duration-300 border ${
+            className={`rounded-[2.5rem] p-4 md:p-5 flex flex-col transition-all duration-300 border h-full min-w-0 ${
               dragOverCol === col.status ? 'bg-indigo-50 border-2 border-dashed border-indigo-400' : 'bg-slate-100/30 border-transparent shadow-inner'
             }`}
           >
@@ -329,7 +329,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
                 {filteredTasks.filter(t => t.status === col.status).length}
               </span>
             </div>
-            <div className="flex-1 space-y-4 w-full overflow-y-auto hide-scrollbar max-h-[800px]">
+            <div className="flex-1 space-y-4 w-full overflow-y-auto hide-scrollbar max-h-[1200px]">
               {filteredTasks.filter(t => t.status === col.status).map(task => (
                 <TaskCard 
                   key={task.id} 

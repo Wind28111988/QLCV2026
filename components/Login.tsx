@@ -85,8 +85,8 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
             <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl font-black shadow-xl shadow-indigo-200">
               Q
             </div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Đăng nhập GDT</h1>
-            <p className="text-slate-500 mt-2 font-medium">Hệ thống quản lý công việc 2026</p>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Thuế TP Hải Phòng</h1>
+            <p className="text-slate-500 mt-2 font-medium">Ứng dụng quản lý công việc</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
@@ -146,13 +146,9 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
               disabled={isLoggingIn}
               className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm hover:bg-indigo-700 shadow-xl shadow-indigo-100 transform active:scale-[0.98] transition-all flex items-center justify-center"
             >
-              {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : 'Đăng nhập hệ thống'}
+              {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : 'Đăng nhập'}
             </button>
           </form>
-
-          <div className="mt-10 pt-8 border-t border-slate-100 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">
-            Database: Supabase Cloud
-          </div>
         </div>
       </div>
 
