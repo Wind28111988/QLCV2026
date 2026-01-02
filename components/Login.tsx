@@ -75,18 +75,24 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
     }
   };
 
+  // Direct link format for Google Drive
+  const logoUrl = "https://drive.google.com/uc?export=view&id=1FUb404uLq8ton8azidI9UrR1DLs7Byds";
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
       <div className="w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-white/20">
         <div className="p-10 md:p-14">
           <div className="text-center mb-10">
-            <div className="w-28 h-28 mx-auto mb-8 relative">
-              <div className="absolute inset-0 bg-amber-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
-              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-amber-400 shadow-xl bg-white p-2 flex items-center justify-center">
+            <div className="w-32 h-32 mx-auto mb-6 relative">
+              <div className="absolute inset-0 bg-amber-400 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-amber-400 shadow-xl bg-white p-1 flex items-center justify-center">
                 <img 
-                  src="https://drive.google.com/file/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds/view?usp=sharing" 
+                  src={logoUrl}
                   alt="Logo Thuế" 
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain scale-110"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
+                  }}
                 />
               </div>
             </div>

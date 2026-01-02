@@ -40,6 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
     });
   }, [currentUser.delegateLevel]);
 
+  const logoUrl = "https://drive.google.com/uc?export=view&id=1FUb404uLq8ton8azidI9UrR1DLs7Byds";
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -57,11 +59,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
       `}>
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-400 shadow-md bg-white shrink-0 p-1 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-amber-400 shadow-md bg-white shrink-0 p-0.5 flex items-center justify-center">
               <img 
-                src="https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.pnghttps://drive.google.com/file/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds/view?usp=sharing" 
+                src={logoUrl}
                 alt="Logo" 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain scale-110"
+                onError={(e) => {
+                  e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
+                }}
               />
             </div>
             <span className="text-sm lg:text-base font-black tracking-tight text-slate-800 uppercase leading-tight">Quản lý<br/>công việc</span>

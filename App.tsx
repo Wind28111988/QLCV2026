@@ -174,6 +174,7 @@ const App: React.FC = () => {
 
   const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
+  const logoUrl = "https://drive.google.com/uc?export=view&id=1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
   return (
     <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row overflow-x-hidden">
@@ -189,11 +190,14 @@ const App: React.FC = () => {
       
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-400 shadow-sm bg-white shrink-0 p-1 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-400 shadow-sm bg-white shrink-0 p-0.5 flex items-center justify-center">
             <img 
-              src="https://drive.google.com/file/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds/view?usp=sharing" 
+              src={logoUrl}
               alt="Logo" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain scale-110"
+              onError={(e) => {
+                e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
+              }}
             />
           </div>
           <span className="font-black text-slate-800 uppercase tracking-tight text-xs">Quản lý công việc</span>
