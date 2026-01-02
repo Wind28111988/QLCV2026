@@ -174,7 +174,9 @@ const App: React.FC = () => {
 
   const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
-  const logoUrl = "https://drive.google.com/uc?export=view&id=1FUb404uLq8ton8azidI9UrR1DLs7Byds";
+  
+  // Link Drive định dạng mới lh3 ổn định hơn
+  const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
   return (
     <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row overflow-x-hidden">
@@ -194,7 +196,7 @@ const App: React.FC = () => {
             <img 
               src={logoUrl}
               alt="Logo" 
-              className="w-full h-full object-contain scale-110"
+              className="w-full h-full object-contain scale-125"
               onError={(e) => {
                 e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
               }}

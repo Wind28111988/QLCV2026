@@ -40,7 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
     });
   }, [currentUser.delegateLevel]);
 
-  const logoUrl = "https://drive.google.com/uc?export=view&id=1FUb404uLq8ton8azidI9UrR1DLs7Byds";
+  const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
   return (
     <>
@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
               <img 
                 src={logoUrl}
                 alt="Logo" 
-                className="w-full h-full object-contain scale-110"
+                className="w-full h-full object-contain scale-125"
                 onError={(e) => {
                   e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
                 }}

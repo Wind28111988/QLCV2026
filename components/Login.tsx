@@ -75,8 +75,8 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
     }
   };
 
-  // Direct link format for Google Drive
-  const logoUrl = "https://drive.google.com/uc?export=view&id=1FUb404uLq8ton8azidI9UrR1DLs7Byds";
+  // Sử dụng lh3.googleusercontent.com thay vì uc?export=view để ổn định hơn
+  const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
@@ -89,15 +89,16 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
                 <img 
                   src={logoUrl}
                   alt="Logo Thuế" 
-                  className="w-full h-full object-contain scale-110"
+                  className="w-full h-full object-contain scale-125"
                   onError={(e) => {
+                    // Fallback link dự phòng nếu Google Drive bị lỗi
                     e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
                   }}
                 />
               </div>
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-tight">Thuế TP Hải Phòng</h1>
-            <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-[0.2em]">Ứng dụng quản lý công việc</p>
+            <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-[0.2em]">Quản lý công việc</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6" autoComplete="off">
