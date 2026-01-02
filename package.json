@@ -15,7 +15,8 @@
     "lucide-react": "^0.462.0",
     "recharts": "^2.13.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "@supabase/supabase-js": "^2.45.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

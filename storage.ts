@@ -7,7 +7,7 @@ export const cloudStorage = {
     try {
       const { data, error } = await supabase.from('users').select('*');
       if (error) throw error;
-      return (data || []).map(u => ({
+      return (data || []).map((u: any) => ({
         id: u.id,
         name: u.name,
         position: u.position,
@@ -17,7 +17,7 @@ export const cloudStorage = {
         phone: u.phone,
         email: u.email,
         password: u.password,
-        delegateLevel: u.delegateLevel, // Postgres tự động ánh xạ nếu select *
+        delegateLevel: u.delegateLevel,
         notes: u.notes,
         mustChangePassword: u.mustChangePassword
       })) as User[];
@@ -31,12 +31,12 @@ export const cloudStorage = {
     try {
       const { data, error } = await supabase.from('tasks').select('*').order('startTime', { ascending: false });
       if (error) throw error;
-      return (data || []).map(t => ({
+      return (data || []).map((t: any) => ({
         id: t.id,
         userId: t.userId,
         content: t.content,
         startTime: Number(t.startTime),
-        completedTime: t.completedTime ? Number(t.completedTime) : undefined,
+        completedTime: t.completedTime ? Number(t.completedTime) : null,
         status: t.status,
         complexity: t.complexity,
         leadId: t.leadId,
@@ -52,7 +52,6 @@ export const cloudStorage = {
 
   async upsertUser(user: User): Promise<{ success: boolean; error?: any }> {
     try {
-      // Đảm bảo các key trùng với cột trong SQL (Case-sensitive vì dùng dấu ngoặc kép trong SQL)
       const { error } = await supabase.from('users').upsert({
         id: user.id,
         name: user.name,

@@ -42,7 +42,7 @@ export interface Task {
   userId: string;
   content: string;
   startTime: number;
-  completedTime?: number;
+  completedTime?: number | null;
   status: TaskStatus;
   complexity: TaskComplexity;
   leadId: string;

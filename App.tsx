@@ -125,7 +125,7 @@ const App: React.FC = () => {
   const updateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    const updates = {
+    const updates: Partial<Task> = {
       status: newStatus,
       completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : null,
       startTime: (newStatus === TaskStatus.IN_PROGRESS && task.status === TaskStatus.TO_DO) ? Date.now() : task.startTime
