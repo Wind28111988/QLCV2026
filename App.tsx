@@ -103,6 +103,7 @@ const App: React.FC = () => {
       userId: currentUser.id,
       content,
       startTime: Date.now(),
+      completedTime: null,
       status: TaskStatus.TO_DO, 
       complexity,
       leadId: leadId || currentUser.id,
@@ -125,15 +126,17 @@ const App: React.FC = () => {
   const updateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+    
     const updates: Partial<Task> = {
       status: newStatus,
       completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : null,
       startTime: (newStatus === TaskStatus.IN_PROGRESS && task.status === TaskStatus.TO_DO) ? Date.now() : task.startTime
     };
+    
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
     if (result.success) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+      setTasks((prev: Task[]) => prev.map((t: Task) => t.id === taskId ? ({ ...t, ...updates } as Task) : t));
     }
     setIsSyncing(false);
   };
@@ -142,7 +145,7 @@ const App: React.FC = () => {
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
     if (result.success) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+      setTasks((prev: Task[]) => prev.map((t: Task) => t.id === taskId ? ({ ...t, ...updates } as Task) : t));
     }
     setIsSyncing(false);
   };

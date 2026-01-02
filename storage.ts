@@ -8,18 +8,18 @@ export const cloudStorage = {
       const { data, error } = await supabase.from('users').select('*');
       if (error) throw error;
       return (data || []).map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        position: u.position,
-        unit: u.unit,
+        id: String(u.id),
+        name: String(u.name),
+        position: String(u.position),
+        unit: String(u.unit),
         gender: u.gender,
-        dob: u.dob,
-        phone: u.phone,
-        email: u.email,
-        password: u.password,
-        delegateLevel: u.delegateLevel,
-        notes: u.notes,
-        mustChangePassword: u.mustChangePassword
+        dob: String(u.dob),
+        phone: String(u.phone),
+        email: String(u.email),
+        password: String(u.password),
+        delegateLevel: String(u.delegateLevel),
+        notes: String(u.notes),
+        mustChangePassword: Boolean(u.mustChangePassword)
       })) as User[];
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -32,16 +32,16 @@ export const cloudStorage = {
       const { data, error } = await supabase.from('tasks').select('*').order('startTime', { ascending: false });
       if (error) throw error;
       return (data || []).map((t: any) => ({
-        id: t.id,
-        userId: t.userId,
-        content: t.content,
+        id: String(t.id),
+        userId: String(t.userId),
+        content: String(t.content),
         startTime: Number(t.startTime),
         completedTime: t.completedTime ? Number(t.completedTime) : null,
         status: t.status,
         complexity: t.complexity,
-        leadId: t.leadId,
+        leadId: String(t.leadId),
         collaboratorIds: t.collaboratorIds || [],
-        unit: t.unit,
+        unit: String(t.unit),
         attachments: t.attachments || []
       })) as Task[];
     } catch (error) {
