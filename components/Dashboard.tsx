@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { User, Task, TaskStatus, TaskComplexity } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Calendar, List, X, Trophy, Target, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, List, X, Trophy, Target, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 const SmartDateInput: React.FC<{
@@ -58,11 +58,17 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   const [endDate, setEndDate] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [now, setNow] = useState(Date.now());
   const [detailModal, setDetailModal] = useState<{ isOpen: boolean; title: string; tasks: Task[] }>({
     isOpen: false,
     title: '',
     tasks: []
   });
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isAD1 = currentUser.notes === 'AD1';
   const isAD2 = currentUser.notes === 'AD2';
@@ -100,7 +106,6 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
 
   const stats = useMemo(() => {
     const filtered = tasks.filter(t => {
-      // Logic lọc theo quyền
       let hasAccess = false;
       if (isAD1) hasAccess = true;
       else if (isAD2) hasAccess = t.unit === currentUser.unit;
@@ -108,13 +113,12 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
 
       if (!hasAccess) return false;
 
-      // Lọc theo bộ lọc người dùng chọn
       const matchesUnit = isAD1 && selectedUnit ? t.unit === selectedUnit : true;
       const matchesStaff = selectedStaffId 
         ? (t.userId === selectedStaffId || t.leadId === selectedStaffId || t.collaboratorIds.includes(selectedStaffId)) 
         : true;
       
-      const taskTime = t.startTime;
+      const taskTime = t.startTime || t.createdAt;
       const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
       const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
 
@@ -124,17 +128,16 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
     const todoTasks = filtered.filter(t => t.status === TaskStatus.TO_DO);
     const inProgressTasks = filtered.filter(t => t.status === TaskStatus.IN_PROGRESS);
     const completedTasks = filtered.filter(t => t.status === TaskStatus.COMPLETED);
+    const overdueTasks = filtered.filter(t => t.status !== TaskStatus.COMPLETED && t.deadline && t.deadline < now);
 
     const performanceData = (isRegularUser ? [currentUser] : accessibleUsers)
       .map(u => {
-        const assignedCount = filtered.filter(t => t.userId === u.id).length;
         const leadTasks = filtered.filter(t => t.leadId === u.id && t.status === TaskStatus.COMPLETED);
         const score = leadTasks.reduce((acc, t) => acc + getPoints(t.complexity), 0);
 
         return {
           name: u.name,
-          score: score,
-          count: assignedCount
+          score: score
         };
       })
       .sort((a, b) => b.score - a.score)
@@ -151,10 +154,11 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       todo: todoTasks,
       inProgress: inProgressTasks,
       completed: completedTasks,
+      overdue: overdueTasks,
       complexityChartData,
       performanceData
     };
-  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, startDate, endDate, selectedUnit, selectedStaffId, accessibleUsers]);
+  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, startDate, endDate, selectedUnit, selectedStaffId, accessibleUsers, now]);
 
   const COLORS = ['#6366f1', '#f59e0b', '#ef4444'];
 
@@ -205,12 +209,13 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           { label: 'Tổng số', count: stats.total.length, icon: List, color: 'indigo', list: stats.total },
           { label: 'Cần làm', count: stats.todo.length, icon: Target, color: 'slate', list: stats.todo },
           { label: 'Đang làm', count: stats.inProgress.length, icon: Clock, color: 'amber', list: stats.inProgress },
           { label: 'Hoàn thành', count: stats.completed.length, icon: CheckCircle2, color: 'emerald', list: stats.completed },
+          { label: 'Quá hạn', count: stats.overdue.length, icon: AlertCircle, color: 'rose', list: stats.overdue },
         ].map((item, idx) => {
           const Icon = item.icon;
           return (
@@ -225,7 +230,9 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</span>
               </div>
-              <p className="text-3xl font-black text-slate-800 tracking-tighter">{item.count}</p>
+              <p className={`text-3xl font-black tracking-tighter ${item.color === 'rose' && stats.overdue.length > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                {item.count}
+              </p>
             </button>
           );
         })}
@@ -276,15 +283,28 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
               <button onClick={() => setDetailModal({ ...detailModal, isOpen: false })} className="p-2 hover:bg-slate-50 rounded-xl transition-all"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-              {detailModal.tasks.map(task => (
-                <div key={task.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="font-bold text-slate-800">{task.content}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-md">{task.complexity}</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-slate-200 text-slate-600 rounded-md">{task.status}</span>
+              {detailModal.tasks.length > 0 ? detailModal.tasks.map(task => {
+                const isOverdue = task.status !== TaskStatus.COMPLETED && task.deadline && task.deadline < now;
+                return (
+                  <div key={task.id} className={`p-4 rounded-2xl border ${isOverdue ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-slate-800 flex-1">{task.content}</p>
+                      {isOverdue && <span className="ml-2 text-[8px] font-black text-rose-600 bg-white px-2 py-0.5 rounded border border-rose-100 uppercase">Quá hạn</span>}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-md">{task.complexity}</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-white text-slate-600 rounded-md border border-slate-100">{task.status}</span>
+                      {task.deadline && (
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${isOverdue ? 'bg-rose-600 text-white border-rose-600' : 'bg-slate-200 text-slate-600 border-slate-200'}`}>
+                          Hạn: {new Date(task.deadline).toLocaleDateString('vi-VN')}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              }) : (
+                <p className="text-center py-10 text-slate-400 font-bold uppercase tracking-widest text-xs">Danh sách trống</p>
+              )}
             </div>
           </div>
         </div>

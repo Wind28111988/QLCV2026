@@ -41,20 +41,22 @@ export interface Task {
   id: string;
   userId: string;
   content: string;
-  startTime?: number; // Thay đổi thành optional: Thời điểm bắt đầu làm
+  startTime?: number; // Thời điểm bắt đầu làm thực tế
   completedTime?: number; 
+  deadline?: number; // THỜI HẠN HOÀN THÀNH (Bổ sung)
   status: TaskStatus;
   complexity: TaskComplexity;
   leadId: string;
   collaboratorIds: string[];
   unit: string;
   attachments?: Attachment[];
-  createdAt: number; // Thêm trường thời điểm tạo công việc
+  createdAt: number; 
 }
 
 export interface DashboardStats {
   totalTasks: number;
   completedTasks: number;
   inProgressTasks: number;
+  overdueTasks: number; // Bổ sung thống kê quá hạn
   tasksByUnit: Record<string, number>;
 }

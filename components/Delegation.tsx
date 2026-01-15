@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { User, TaskStatus, TaskComplexity, Attachment } from '../types';
-import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X } from 'lucide-react';
+import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 interface DelegationProps {
   currentUser: User;
   users: User[];
-  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[]) => void;
+  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number) => void;
 }
 
 const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign }) => {
@@ -17,6 +17,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
   const [leadId, setLeadId] = useState('');
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [deadline, setDeadline] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canDelegateTo = (targetLevel: string) => {
@@ -39,10 +40,11 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
     }));
   }, [targetEmployees]);
 
+  // Fix: Explicitly type the file parameter as 'File' to resolve 'unknown' type errors
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const loaders = Array.from(files).map(file => {
+    const loaders = Array.from(files).map((file: File) => {
       return new Promise<Attachment>((resolve) => {
         const reader = new FileReader();
         reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
@@ -60,12 +62,14 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
       alert('Vui lòng nhập đầy đủ nội dung và chọn người chủ trì.');
       return;
     }
-    onAssign(content, complexity, leadId, collaboratorIds, attachments);
+    const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
+    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs);
     alert(`Đã giao việc thành công cho ${users.find(u => u.id === leadId)?.name}.`);
     setContent('');
     setLeadId('');
     setCollaboratorIds([]);
     setAttachments([]);
+    setDeadline('');
   };
 
   const toggleCollaborator = (id: string) => {
@@ -114,6 +118,21 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
             </div>
 
             <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Thời hạn hoàn thành (Không bắt buộc)</label>
+              <div className="relative group">
+                <input
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm"
+                />
+                <Calendar size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Đơn vị tiếp nhận</label>
               <select
                 value={selectedUnit}
@@ -123,26 +142,26 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
                 {units.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-3 ml-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Tài liệu đính kèm</label>
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-indigo-600 text-xs font-black uppercase flex items-center hover:underline">
-                <Paperclip size={14} className="mr-1" /> Thêm tệp
-              </button>
-            </div>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner">
-                {attachments.map((att, i) => (
-                  <div key={i} className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 shadow-sm">
-                    <span className="truncate max-w-[150px]">{att.name}</span>
-                    <button type="button" onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="text-rose-400 hover:text-rose-600"><X size={14} /></button>
-                  </div>
-                ))}
+            <div>
+              <div className="flex items-center justify-between mb-3 ml-1">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Tài liệu đính kèm</label>
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-indigo-600 text-xs font-black uppercase flex items-center hover:underline">
+                  <Paperclip size={14} className="mr-1" /> Thêm tệp
+                </button>
               </div>
-            )}
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner">
+                  {attachments.map((att, i) => (
+                    <div key={i} className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 shadow-sm">
+                      <span className="truncate max-w-[150px]">{att.name}</span>
+                      <button type="button" onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="text-rose-400 hover:text-rose-600"><X size={14} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">

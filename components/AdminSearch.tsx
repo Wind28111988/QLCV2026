@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { User, Task, TaskStatus, TaskComplexity } from '../types';
-import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert } from 'lucide-react';
+import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert, AlertCircle } from 'lucide-react';
 import { DEFAULT_PASSWORD } from '../constants';
 import SearchableSelect from './SearchableSelect';
 
@@ -90,14 +90,19 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
   const [endDate, setEndDate] = useState('');
   const [selectedComplexity, setSelectedComplexity] = useState<string>('');
   const [triggerSearch, setTriggerSearch] = useState(0);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 10000); // Cập nhật mỗi 10s
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (initialSelectedUserId) setSelectedUserId(initialSelectedUserId);
   }, [initialSelectedUserId]);
 
-  const isAD = currentUser.notes === 'AD';
   const units = useMemo(() => Array.from(new Set(users.map(u => u.unit))), [users]);
-  const isChief = currentUser.position.toLowerCase().includes('trưởng phòng') || isAD;
+  const isChief = currentUser.position.toLowerCase().includes('trưởng phòng') || isAdmin;
   
   const unitEmployees = useMemo(() => {
     if (!selectedUnit) return users;
@@ -119,7 +124,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
       const lead = users.find(u => u.id === task.leadId);
       if (!creator && !lead) return false;
 
-      const canSee = isAD || (isChief && task.unit === currentUser.unit) || (task.userId === currentUser.id || task.leadId === currentUser.id || task.collaboratorIds.includes(currentUser.id));
+      const canSee = isAdmin || (isChief && task.unit === currentUser.unit) || (task.userId === currentUser.id || task.leadId === currentUser.id || task.collaboratorIds.includes(currentUser.id));
       if (!canSee) return false;
 
       const matchesUnit = selectedUnit ? task.unit === selectedUnit : true;
@@ -127,16 +132,16 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
       const matchesName = searchName ? (creator?.name.toLowerCase().includes(searchName.toLowerCase()) || lead?.name.toLowerCase().includes(searchName.toLowerCase())) : true;
       const matchesComplexity = selectedComplexity ? task.complexity === selectedComplexity : true;
       
-      const taskTime = task.startTime;
+      const taskTime = task.startTime || task.createdAt;
       const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
       const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
 
       return matchesUnit && matchesUser && matchesName && matchesStart && matchesEnd && matchesComplexity;
     });
-  }, [tasks, users, selectedUnit, selectedUserId, searchName, startDate, endDate, selectedComplexity, isAD, isChief, currentUser, triggerSearch]);
+  }, [tasks, users, selectedUnit, selectedUserId, searchName, startDate, endDate, selectedComplexity, isAdmin, isChief, currentUser, triggerSearch]);
 
   const handleResetPass = (user: User) => {
-    if (!isAD) return;
+    if (!isAdmin) return;
     if (window.confirm(`Xác nhận reset mật khẩu của nhân sự ${user.name} về mặc định (${DEFAULT_PASSWORD})?`)) {
       onResetUserPassword(user.email, DEFAULT_PASSWORD);
       alert('Đã reset mật khẩu thành công!');
@@ -167,9 +172,10 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
         'Đơn vị': t.unit,
         'Nội dung': t.content,
         'Mức độ': t.complexity,
-        'Trạng thái': t.status,
-        'Bắt đầu': formatFullDateTime(t.startTime),
-        'Kết thúc': t.completedTime ? formatFullDateTime(t.completedTime) : '-'
+        'Trạng thái': (t.status !== TaskStatus.COMPLETED && t.deadline && t.deadline < now) ? `${t.status} (QUÁ HẠN)` : t.status,
+        'Thời hạn': t.deadline ? formatFullDateTime(t.deadline) : '-',
+        'Bắt đầu thực tế': formatFullDateTime(t.startTime),
+        'Hoàn thành lúc': t.completedTime ? formatFullDateTime(t.completedTime) : '-'
       };
     });
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -187,7 +193,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
-          {(isChief || isAD) && (
+          {(isChief || isAdmin) && (
             <>
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Đơn vị công tác</label>
@@ -240,7 +246,6 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
       <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <h3 className="font-black text-slate-800 uppercase text-[10px] tracking-[0.2em]">Kết quả ({filteredTasks.length})</h3>
-          {isAD && <span className="text-[10px] font-black text-amber-600 flex items-center bg-amber-50 px-3 py-1 rounded-full border border-amber-100 uppercase tracking-tighter"><ShieldAlert size={12} className="mr-1" /> Admin Root</span>}
         </div>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-xs whitespace-nowrap">
@@ -249,8 +254,9 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Phụ trách</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nội dung</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Thời hạn</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hoàn thành</th>
-                {isAD && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>}
+                {isAdmin && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Tùy chọn</th>}
               </tr>
             </thead>
             <tbody>
@@ -258,6 +264,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 const assigner = users.find(u => u.id === task.userId);
                 const lead = users.find(u => u.id === task.leadId);
                 const isCompleted = task.status === TaskStatus.COMPLETED;
+                const isOverdue = !isCompleted && task.deadline && task.deadline < now;
                 
                 return (
                   <tr key={task.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -278,36 +285,48 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center space-y-1">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
-                          task.status === TaskStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
-                        }`}>{task.status}</span>
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border flex items-center ${
+                          task.status === TaskStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                          isOverdue ? 'bg-rose-50 text-rose-600 border-rose-200 ring-1 ring-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                        }`}>
+                          {isOverdue && <AlertCircle size={10} className="mr-1 animate-pulse" />}
+                          {task.status}
+                          {isOverdue && <span className="ml-1">(QUÁ HẠN)</span>}
+                        </span>
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{task.complexity}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <span className={`font-mono font-bold ${isOverdue ? 'text-rose-500' : 'text-slate-500'}`}>
+                        {task.deadline ? formatFullDateTime(task.deadline) : '--:--'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-mono text-slate-500 font-bold">{isCompleted ? formatFullDateTime(task.completedTime) : '--:--'}</span>
-                        {isCompleted && <span className="text-indigo-500 font-black text-[9px] mt-0.5 flex items-center uppercase"><Timer size={10} className="mr-1" /> {formatDurationDetailed(task.completedTime! - task.startTime)}</span>}
+                        {isCompleted && task.startTime && (
+                          <span className="text-indigo-500 font-black text-[9px] mt-0.5 flex items-center uppercase">
+                            <Timer size={10} className="mr-1" /> {formatDurationDetailed(task.completedTime! - task.startTime)}
+                          </span>
+                        )}
                       </div>
                     </td>
-                    {isAD && (
+                    {isAdmin && (
                       <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <button 
-                            onClick={() => lead && handleResetPass(lead)}
-                            title={`Reset pass cho: ${lead?.name}`}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                          >
-                            <KeyRound size={16} />
-                          </button>
-                        </div>
+                        <button 
+                          onClick={() => lead && handleResetPass(lead)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                          title="Reset mật khẩu nhân sự"
+                        >
+                          <KeyRound size={16} />
+                        </button>
                       </td>
                     )}
                   </tr>
                 )
               }) : (
                 <tr>
-                   <td colSpan={isAD ? 5 : 4} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
+                   <td colSpan={isAdmin ? 6 : 5} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
                 </tr>
               )}
             </tbody>
