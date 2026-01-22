@@ -21,6 +21,35 @@ const SmartDateInput: React.FC<{
     }
   }, [value]);
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/\D/g, ''); 
+    if (raw.length > 8) raw = raw.slice(0, 8);
+    
+    let formatted = raw;
+    if (raw.length >= 3 && raw.length <= 4) {
+      formatted = `${raw.slice(0, 2)}/${raw.slice(2)}`;
+    } else if (raw.length >= 5) {
+      formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4)}`;
+    }
+    
+    setDisplayText(formatted);
+
+    if (raw.length === 8) {
+      const d = raw.slice(0, 2);
+      const m = raw.slice(2, 4);
+      const y = raw.slice(4, 8);
+      // Kiểm tra ngày hợp lệ đơn giản
+      const dayNum = parseInt(d);
+      const monthNum = parseInt(m);
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+        const dateObj = new Date(`${y}-${m}-${d}`);
+        if (!isNaN(dateObj.getTime())) {
+          onChange(`${y}-${m}-${d}`);
+        }
+      }
+    }
+  };
+
   return (
     <div className="flex-1 w-full min-w-[140px]">
       <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">{label}</label>
@@ -28,9 +57,9 @@ const SmartDateInput: React.FC<{
         <input
           type="text"
           value={displayText}
-          readOnly
+          onChange={handleTextChange}
           placeholder="DD/MM/YYYY"
-          className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium cursor-pointer"
+          className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
           <Calendar size={16} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
