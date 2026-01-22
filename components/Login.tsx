@@ -97,7 +97,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
                 />
               </div>
             </div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-tight">Thuế TP Hải Phòng</h1>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-tight">Phòng kiểm tra số 1</h1>
             <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-[0.2em]">Quản lý công việc</p>
           </div>
 
