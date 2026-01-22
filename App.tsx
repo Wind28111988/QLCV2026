@@ -108,7 +108,6 @@ const App: React.FC = () => {
       complexity,
       leadId: leadId || currentUser.id,
       collaboratorIds: collaboratorIds || [],
-      forwarderIds: [],
       unit: currentUser.unit,
       attachments: attachments || []
     };
@@ -134,28 +133,6 @@ const App: React.FC = () => {
       startTime: (newStatus === TaskStatus.IN_PROGRESS && task.status === TaskStatus.TO_DO) ? Date.now() : task.startTime
     };
     
-    setIsSyncing(true);
-    const result = await cloudStorage.updateTask(taskId, updates);
-    if (result.success) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
-    }
-    setIsSyncing(false);
-  };
-
-  const handleForwardTask = async (taskId: string, newLeadId: string, newCollaboratorIds: string[]) => {
-    if (!currentUser) return;
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const currentForwarders = task.forwarderIds || [];
-    const updates: Partial<Task> = {
-      leadId: newLeadId,
-      collaboratorIds: newCollaboratorIds,
-      forwarderIds: [...currentForwarders, currentUser.id],
-      status: TaskStatus.IN_PROGRESS,
-      startTime: task.status === TaskStatus.TO_DO ? Date.now() : task.startTime
-    };
-
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
     if (result.success) {
@@ -201,14 +178,9 @@ const App: React.FC = () => {
   
   const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
-  // Lọc công việc liên quan đến người dùng hiện tại
+  // Lọc công việc cho Tab "Việc của tôi": Thuộc sở hữu/tham gia VÀ trong vòng 2 tháng (60 ngày)
   const myRecentTasks = tasks.filter(t => {
-    const isRelated = 
-      t.userId === currentUser.id || 
-      t.leadId === currentUser.id || 
-      t.collaboratorIds.includes(currentUser.id) ||
-      (t.forwarderIds && t.forwarderIds.includes(currentUser.id));
-      
+    const isRelated = t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id);
     const twoMonthsAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
     const isRecent = t.startTime >= twoMonthsAgo;
     return isRelated && isRecent;
@@ -269,18 +241,7 @@ const App: React.FC = () => {
 
         <div className="w-full">
           {activeTab === 'dashboard' && <Dashboard users={users} tasks={tasks} currentUser={currentUser} onUserClick={(uid) => { setViewedUserId(uid); setActiveTab('search'); }} />}
-          {activeTab === 'tasks' && (
-            <TaskBoard 
-              tasks={myRecentTasks} 
-              onAddTask={addTask} 
-              onUpdateStatus={updateTaskStatus} 
-              onUpdateTask={updateTask} 
-              onDeleteTask={deleteTask}
-              onForwardTask={handleForwardTask}
-              currentUser={currentUser}
-              allUsers={users}
-            />
-          )}
+          {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} />}
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && (canDelegate ? <Delegation currentUser={currentUser} users={users} onAssign={addTask} /> : <div className="p-10 text-center font-bold text-slate-400 uppercase tracking-widest bg-white rounded-3xl border border-slate-100 shadow-sm">Bạn không có quyền truy cập chức năng này.</div>)}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}

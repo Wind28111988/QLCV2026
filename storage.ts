@@ -42,7 +42,6 @@ export const cloudStorage = {
         complexity: t.complexity,
         leadId: String(t.leadId),
         collaboratorIds: t.collaboratorIds || [],
-        forwarderIds: t.forwarderIds || [],
         unit: String(t.unit),
         attachments: t.attachments || []
       })) as Task[];
@@ -89,7 +88,6 @@ export const cloudStorage = {
         complexity: task.complexity,
         leadId: task.leadId,
         collaboratorIds: task.collaboratorIds || [],
-        forwarderIds: task.forwarderIds || [],
         unit: task.unit,
         attachments: task.attachments || []
       });
