@@ -48,6 +48,7 @@ export interface Task {
   complexity: TaskComplexity;
   leadId: string;
   collaboratorIds: string[];
+  forwarderIds?: string[]; // Thêm để theo dõi những người đã chuyển tiếp việc này
   unit: string;
   attachments?: Attachment[];
 }
@@ -56,6 +57,6 @@ export interface DashboardStats {
   totalTasks: number;
   completedTasks: number;
   inProgressTasks: number;
-  overdueTasks: number; // Thêm thống kê quá hạn
+  overdueTasks: number; 
   tasksByUnit: Record<string, number>;
 }
