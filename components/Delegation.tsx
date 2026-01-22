@@ -1,8 +1,80 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { User, TaskStatus, TaskComplexity, Attachment } from '../types';
-import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar } from 'lucide-react';
+import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
+
+const SmartDateTimeInput: React.FC<{
+  label: string;
+  value: string; // ISO format: YYYY-MM-DDTHH:mm
+  onChange: (val: string) => void;
+}> = ({ label, value, onChange }) => {
+  const [displayText, setDisplayText] = useState('');
+
+  useEffect(() => {
+    if (value) {
+      const [datePart, timePart] = value.split('T');
+      const [y, m, d] = datePart.split('-');
+      const [hh, min] = timePart.split(':');
+      setDisplayText(`${d}/${m}/${y} ${hh}:${min}:00`);
+    } else {
+      setDisplayText('');
+    }
+  }, [value]);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/\D/g, '');
+    if (raw.length > 14) raw = raw.slice(0, 14);
+
+    let formatted = raw;
+    if (raw.length >= 3 && raw.length <= 4) formatted = `${raw.slice(0, 2)}/${raw.slice(2)}`;
+    else if (raw.length >= 5 && raw.length <= 8) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4)}`;
+    else if (raw.length >= 9 && raw.length <= 10) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8)}`;
+    else if (raw.length >= 11 && raw.length <= 12) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8, 10)}:${raw.slice(10)}`;
+    else if (raw.length >= 13) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8, 10)}:${raw.slice(10, 12)}:${raw.slice(12)}`;
+
+    setDisplayText(formatted);
+
+    if (raw.length === 14 || raw.length === 12) {
+      const d = raw.slice(0, 2);
+      const m = raw.slice(2, 4);
+      const y = raw.slice(4, 8);
+      const hh = raw.slice(8, 10);
+      const min = raw.slice(10, 12);
+      
+      const dateStr = `${y}-${m}-${d}T${hh}:${min}`;
+      if (!isNaN(new Date(dateStr).getTime())) {
+        onChange(dateStr);
+      }
+    }
+  };
+
+  return (
+    <div className="w-full">
+      <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">{label}</label>
+      <div className="relative group">
+        <input
+          type="text"
+          value={displayText}
+          onChange={handleTextChange}
+          placeholder="DD/MM/YYYY HH:mm:ss"
+          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-bold text-sm"
+        />
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center h-full">
+          <div className="relative flex items-center">
+            <Clock size={18} className="text-slate-400 group-hover:text-indigo-500 transition-colors pointer-events-none" />
+            <input
+              type="datetime-local"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface DelegationProps {
   currentUser: User;
@@ -43,7 +115,6 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    // Explicitly cast to File[] to ensure the map function correctly handles the file objects
     const loaders = (Array.from(files) as File[]).map(file => {
       return new Promise<Attachment>((resolve) => {
         const reader = new FileReader();
@@ -117,17 +188,11 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
               </select>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hạn chót (Deadline)</label>
-              <div className="relative">
-                <input
-                  type="datetime-local"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none font-bold text-sm"
-                />
-              </div>
-            </div>
+            <SmartDateTimeInput
+              label="Hạn chót (Deadline)"
+              value={deadline}
+              onChange={setDeadline}
+            />
 
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Đơn vị tiếp nhận</label>

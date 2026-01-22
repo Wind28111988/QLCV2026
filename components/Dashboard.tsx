@@ -38,14 +38,9 @@ const SmartDateInput: React.FC<{
       const d = raw.slice(0, 2);
       const m = raw.slice(2, 4);
       const y = raw.slice(4, 8);
-      // Kiểm tra ngày hợp lệ đơn giản
-      const dayNum = parseInt(d);
-      const monthNum = parseInt(m);
-      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
-        const dateObj = new Date(`${y}-${m}-${d}`);
-        if (!isNaN(dateObj.getTime())) {
-          onChange(`${y}-${m}-${d}`);
-        }
+      const dateStr = `${y}-${m}-${d}`;
+      if (!isNaN(new Date(dateStr).getTime())) {
+        onChange(dateStr);
       }
     }
   };
@@ -59,16 +54,17 @@ const SmartDateInput: React.FC<{
           value={displayText}
           onChange={handleTextChange}
           placeholder="DD/MM/YYYY"
-          className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+          className="w-full bg-white border border-slate-200 rounded-xl pl-4 pr-12 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center h-full">
-          <div className="relative">
+        <div className="absolute right-0 top-0 bottom-0 flex items-center pr-3">
+          <div className="relative h-6 w-6 flex items-center justify-center">
             <Calendar size={18} className="text-slate-400 group-hover:text-indigo-500 transition-colors pointer-events-none" />
             <input
               type="date"
               value={value}
               onChange={(e) => onChange(e.target.value)}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              title="Chọn ngày từ lịch"
             />
           </div>
         </div>
@@ -112,7 +108,6 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   }, [users, currentUser, isAD1, isAD2, selectedUnit]);
 
   const getPoints = (task: Task) => {
-    // Nếu quá hạn thì không được tính điểm
     if (task.status === TaskStatus.COMPLETED && task.deadline && task.completedTime && task.completedTime > task.deadline) {
       return 0;
     }

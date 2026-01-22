@@ -17,6 +17,14 @@ interface AdminSearchProps {
   initialSelectedUserId?: string | null;
 }
 
+const pad = (n: number) => n.toString().padStart(2, '0');
+
+const formatFullDateTime = (timestamp: number | undefined) => {
+  if (!timestamp) return '-';
+  const d = new Date(timestamp);
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
 const SmartDateInput: React.FC<{
   label: string;
   value: string; 
@@ -68,14 +76,16 @@ const SmartDateInput: React.FC<{
           placeholder="DD/MM/YYYY"
           className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-sm"
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-          <Calendar size={18} className="text-slate-400 group-hover:text-indigo-500 transition-colors pointer-events-none" />
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center h-full">
+          <div className="relative flex items-center">
+            <Calendar size={18} className="text-slate-400 group-hover:text-indigo-500 transition-colors pointer-events-none" />
+            <input
+              type="date"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -84,7 +94,7 @@ const SmartDateInput: React.FC<{
 
 const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, currentUser, onUpdateTask, onResetUserPassword, initialSelectedUserId }) => {
   const [searchName, setSearchName] = useState('');
-  const [searchKeyword, setSearchKeyword] = useState(''); // Thêm từ khóa nội dung
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(initialSelectedUserId || '');
   const [startDate, setStartDate] = useState('');
@@ -143,13 +153,6 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
       onResetUserPassword(user.email, DEFAULT_PASSWORD);
       alert('Đã reset mật khẩu thành công!');
     }
-  };
-
-  const formatFullDateTime = (timestamp: number | undefined) => {
-    if (!timestamp) return '-';
-    return new Date(timestamp).toLocaleString('vi-VN', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
-    });
   };
 
   const formatDurationDetailed = (ms: number) => {
