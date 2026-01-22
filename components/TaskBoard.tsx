@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Task, TaskStatus, TaskComplexity, Attachment } from '../types';
-import { Clock, CheckCircle2, PlayCircle, Plus, Edit2, Trash2, Search, X, Check, Paperclip, FileText, Image as ImageIcon, Eye, Calendar, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, PlayCircle, Plus, Edit2, Trash2, Search, X, Check, Paperclip, FileText, Image as ImageIcon, Eye } from 'lucide-react';
 
 interface TaskCardProps { 
   task: Task; 
@@ -29,24 +29,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const [isDraggable, setIsDraggable] = useState(true);
   const isEditing = editingTaskId === task.id;
 
-  const isOverdue = useMemo(() => {
-    return task.status !== TaskStatus.COMPLETED && task.deadline && task.deadline < now;
-  }, [task.status, task.deadline, now]);
-
   const formatDuration = (ms: number) => {
-    if (ms <= 0) return "0s";
+    if (ms <= 0) return "Chờ...";
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     if (hours > 0) return `${hours}h ${minutes % 60}m`;
     if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
     return `${seconds}s`;
-  };
-
-  const formatDate = (ts: number) => {
-    return new Date(ts).toLocaleString('vi-VN', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
   };
 
   const getComplexityColor = (comp: TaskComplexity) => {
@@ -57,6 +47,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
+  // Tính toán thời gian hiển thị
   const durationText = useMemo(() => {
     if (task.status === TaskStatus.TO_DO || !task.startTime) {
       return "Chưa bắt đầu";
@@ -64,7 +55,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     if (task.status === TaskStatus.IN_PROGRESS) {
       return formatDuration(now - task.startTime);
     }
-    if (task.status === TaskStatus.COMPLETED && task.completedTime && task.startTime) {
+    if (task.status === TaskStatus.COMPLETED && task.completedTime) {
       return formatDuration(task.completedTime - task.startTime);
     }
     return "N/A";
@@ -100,16 +91,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
     <div 
       draggable={isDraggable} 
       onDragStart={(e) => onDragStart(e, task.id)}
-      className={`bg-white p-4 md:p-5 shadow-sm border rounded-[1.5rem] mb-4 group transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full overflow-hidden ${
-        isOverdue ? 'border-rose-400 ring-1 ring-rose-50' : 'border-slate-200 hover:border-indigo-300'
-      }`}
+      className="bg-white p-4 md:p-5 shadow-sm border border-slate-200 rounded-[1.5rem] mb-4 group hover:border-indigo-300 transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full overflow-hidden"
     >
-      {isOverdue && (
-        <div className="absolute top-0 right-0 px-3 py-1 bg-rose-500 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl flex items-center shadow-sm animate-pulse">
-          <AlertCircle size={10} className="mr-1" /> Quá hạn
-        </div>
-      )}
-      
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
           <div className="grid grid-cols-2 gap-0.5 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -145,16 +128,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
       </div>
       
-      <div className="pl-1 mb-3">
+      <div className="pl-1 mb-5">
         <p className="font-bold text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words">{task.content}</p>
       </div>
-
-      {task.deadline && (
-        <div className={`flex items-center text-[10px] font-black uppercase tracking-widest pl-1 mb-4 ${isOverdue ? 'text-rose-500' : 'text-slate-400'}`}>
-          <Calendar size={12} className="mr-1.5" />
-          Hạn: {formatDate(task.deadline)}
-        </div>
-      )}
       
       {task.attachments && task.attachments.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4 pl-1">
@@ -207,7 +183,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
 interface TaskBoardProps {
   tasks: Task[];
-  onAddTask: (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number) => void;
+  onAddTask: (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[]) => void;
   onUpdateStatus: (taskId: string, status: TaskStatus) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (taskId: string) => void;
@@ -216,7 +192,6 @@ interface TaskBoardProps {
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus, onUpdateTask, onDeleteTask }) => {
   const [newContent, setNewContent] = useState('');
   const [newComplexity, setNewComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
-  const [newDeadline, setNewDeadline] = useState('');
   const [newAttachments, setNewAttachments] = useState<Attachment[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -237,11 +212,10 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
     [tasks, searchTerm]
   );
 
-  // Fix: Explicitly type the file parameter as 'File' to resolve 'unknown' type errors
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const loaders = Array.from(files).map((file: File) => {
+    const loaders = Array.from(files).map(file => {
       return new Promise<Attachment>((resolve) => {
         const reader = new FileReader();
         reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
@@ -256,10 +230,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newContent.trim()) {
-      const deadlineTs = newDeadline ? new Date(newDeadline).getTime() : undefined;
-      onAddTask(newContent.trim(), newComplexity, undefined, undefined, newAttachments, deadlineTs);
+      onAddTask(newContent.trim(), newComplexity, undefined, undefined, newAttachments);
       setNewContent('');
-      setNewDeadline('');
       setNewAttachments([]);
     }
   };
@@ -310,19 +282,10 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
               className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500 text-base font-bold shadow-inner"
             />
             <div className="flex gap-2">
-              <div className="relative">
-                <input
-                  type="datetime-local"
-                  value={newDeadline}
-                  onChange={(e) => setNewDeadline(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none text-[10px] font-black uppercase tracking-tighter"
-                  title="Thời hạn hoàn thành"
-                />
-              </div>
               <select
                 value={newComplexity}
                 onChange={(e) => setNewComplexity(e.target.value as TaskComplexity)}
-                className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none text-[10px] font-black uppercase tracking-widest"
+                className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none text-xs font-black uppercase tracking-widest"
               >
                 {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
               </select>

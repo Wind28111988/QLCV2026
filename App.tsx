@@ -95,7 +95,7 @@ const App: React.FC = () => {
     }
   };
 
-  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number) => {
+  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[]) => {
     if (!currentUser) return;
     
     const newTask: Task = {
@@ -103,8 +103,7 @@ const App: React.FC = () => {
       userId: currentUser.id,
       content,
       createdAt: Date.now(),
-      startTime: undefined, 
-      deadline: deadline, // Gán deadline
+      startTime: undefined, // Không có startTime khi vừa tạo (Cần làm)
       status: TaskStatus.TO_DO, 
       complexity,
       leadId: leadId || currentUser.id,
@@ -128,6 +127,7 @@ const App: React.FC = () => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    // RÀNG BUỘC: Không cho phép nhảy cóc từ Cần làm sang Hoàn thành
     if (task.status === TaskStatus.TO_DO && newStatus === TaskStatus.COMPLETED) {
       alert("Công việc phải được bắt đầu thực hiện (Đang làm) trước khi có thể Hoàn thành.");
       return;
@@ -136,6 +136,7 @@ const App: React.FC = () => {
     const updates: Partial<Task> = {
       status: newStatus,
       completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : undefined,
+      // Ghi nhận startTime khi lần đầu tiên chuyển sang IN_PROGRESS
       startTime: (newStatus === TaskStatus.IN_PROGRESS && !task.startTime) ? Date.now() : task.startTime
     };
     
@@ -181,6 +182,8 @@ const App: React.FC = () => {
 
   const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
+  
+  // Link Drive định dạng mới lh3 ổn định hơn
   const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
   return (
