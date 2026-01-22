@@ -40,6 +40,8 @@ const SmartDateInput: React.FC<{
       if (!isNaN(new Date(ds).getTime())) {
         onChange(ds);
       }
+    } else if (raw.length === 0) {
+      onChange('');
     }
   };
 
@@ -72,7 +74,7 @@ const SmartDateInput: React.FC<{
   );
 };
 
-const DocumentEntry: React.FC<{ onAdd: (doc: Document) => void }> = ({ onAdd }) => {
+const DocumentEntry: React.FC<{ onAdd: (doc) => void }> = ({ onAdd }) => {
   const [formData, setFormData] = useState<Partial<Document>>({
     refCode: '', 
     docNumber: '', 
@@ -87,15 +89,23 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => void }> = ({ onAdd }) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.refCode || !formData.docNumber || !formData.summary) {
-        alert('Vui lòng nhập đầy đủ các trường bắt buộc!');
+    if (!formData.summary) {
+        alert('Vui lòng nhập trích yếu văn bản!');
         return;
     }
 
     const doc: Document = {
       ...formData as Document,
       id: Math.random().toString(36).substr(2, 9),
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      refCode: formData.refCode || '',
+      docNumber: formData.docNumber || '',
+      docDate: formData.docDate || '',
+      arrivalDate: formData.arrivalDate || '',
+      senderUnit: formData.senderUnit || '',
+      taxCode: formData.taxCode || '',
+      deadline: formData.deadline || '',
+      notes: formData.notes || ''
     };
     onAdd(doc);
     alert('Đã lưu văn bản thành công!');
@@ -120,9 +130,8 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => void }> = ({ onAdd }) 
       </div>
       <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số ký hiệu *</label>
+          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số ký hiệu</label>
           <input 
-            required 
             type="text" 
             value={formData.refCode} 
             onChange={e => setFormData({...formData, refCode: e.target.value})} 
@@ -131,9 +140,8 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => void }> = ({ onAdd }) 
           />
         </div>
         <div>
-          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số văn bản đến *</label>
+          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số văn bản đến</label>
           <input 
-            required 
             type="text" 
             value={formData.docNumber} 
             onChange={e => setFormData({...formData, docNumber: e.target.value})} 
@@ -146,13 +154,11 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => void }> = ({ onAdd }) 
             label="Ngày văn bản" 
             value={formData.docDate || ''} 
             onChange={v => setFormData({...formData, docDate: v})} 
-            required 
         />
         <SmartDateInput 
             label="Ngày đến" 
             value={formData.arrivalDate || ''} 
             onChange={v => setFormData({...formData, arrivalDate: v})} 
-            required 
         />
 
         <div>
