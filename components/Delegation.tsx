@@ -1,18 +1,19 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { User, TaskStatus, TaskComplexity, Attachment } from '../types';
-import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X } from 'lucide-react';
+import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 interface DelegationProps {
   currentUser: User;
   users: User[];
-  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[]) => void;
+  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number) => void;
 }
 
 const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign }) => {
   const [content, setContent] = useState('');
   const [complexity, setComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
+  const [deadline, setDeadline] = useState('');
   const [selectedUnit, setSelectedUnit] = useState(currentUser.unit);
   const [leadId, setLeadId] = useState('');
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
@@ -42,7 +43,8 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const loaders = Array.from(files).map(file => {
+    // Explicitly cast to File[] to ensure the map function correctly handles the file objects
+    const loaders = (Array.from(files) as File[]).map(file => {
       return new Promise<Attachment>((resolve) => {
         const reader = new FileReader();
         reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
@@ -60,10 +62,12 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
       alert('Vui lòng nhập đầy đủ nội dung và chọn người chủ trì.');
       return;
     }
-    onAssign(content, complexity, leadId, collaboratorIds, attachments);
+    const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
+    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs);
     alert(`Đã giao việc thành công cho ${users.find(u => u.id === leadId)?.name}.`);
     setContent('');
     setLeadId('');
+    setDeadline('');
     setCollaboratorIds([]);
     setAttachments([]);
   };
@@ -101,7 +105,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Mức độ phức tạp</label>
               <select
@@ -111,6 +115,18 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
               >
                 {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hạn chót (Deadline)</label>
+              <div className="relative">
+                <input
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none font-bold text-sm"
+                />
+              </div>
             </div>
 
             <div>

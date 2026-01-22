@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Task, TaskStatus, TaskComplexity, Attachment } from '../types';
-import { Clock, CheckCircle2, PlayCircle, Plus, Edit2, Trash2, Search, X, Check, Paperclip, FileText, Image as ImageIcon, Eye } from 'lucide-react';
+import { Clock, CheckCircle2, PlayCircle, Plus, Edit2, Trash2, Search, X, Check, Paperclip, FileText, Image as ImageIcon, Eye, AlertTriangle, Calendar } from 'lucide-react';
 
 interface TaskCardProps { 
   task: Task; 
@@ -9,8 +9,10 @@ interface TaskCardProps {
   editingTaskId: string | null;
   editContent: string;
   editComplexity: TaskComplexity;
+  editDeadline: string;
   setEditContent: (v: string) => void;
   setEditComplexity: (v: TaskComplexity) => void;
+  setEditDeadline: (v: string) => void;
   handleSaveEdit: () => void;
   setEditingTaskId: (v: string | null) => void;
   handleStartEdit: (t: Task) => void;
@@ -21,22 +23,24 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ 
-  task, now, editingTaskId, editContent, editComplexity, 
-  setEditContent, setEditComplexity, handleSaveEdit, 
+  task, now, editingTaskId, editContent, editComplexity, editDeadline,
+  setEditContent, setEditComplexity, setEditDeadline, handleSaveEdit, 
   setEditingTaskId, handleStartEdit, onDeleteTask, onUpdateStatus, onViewAttachment,
   onDragStart
 }) => {
   const [isDraggable, setIsDraggable] = useState(true);
   const isEditing = editingTaskId === task.id;
 
-  const formatDuration = (ms: number) => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-    return `${seconds}s`;
+  const formatDate = (ts: number | undefined) => {
+    if (!ts) return '-';
+    return new Date(ts).toLocaleString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
   };
+
+  const isOverdue = task.status !== TaskStatus.COMPLETED && task.deadline && now > task.deadline;
+  const isLateCompleted = task.status === TaskStatus.COMPLETED && task.deadline && task.completedTime && task.completedTime > task.deadline;
 
   const getComplexityColor = (comp: TaskComplexity) => {
     switch (comp) {
@@ -55,17 +59,28 @@ const TaskCard: React.FC<TaskCardProps> = ({
           onChange={(e) => setEditContent(e.target.value)}
           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[80px] text-sm font-medium"
         />
-        <div className="mt-3 flex items-center justify-between">
-          <select
-            value={editComplexity}
-            onChange={(e) => setEditComplexity(e.target.value as TaskComplexity)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none text-xs font-bold"
-          >
-            {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div className="flex space-x-2">
-            <button onClick={handleSaveEdit} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-all active:scale-90"><Check size={16} /></button>
-            <button onClick={() => setEditingTaskId(null)} className="bg-slate-100 text-slate-400 p-2 rounded-lg hover:bg-slate-200 transition-all"><X size={16} /></button>
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-col">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hạn chót</label>
+            <input 
+              type="datetime-local" 
+              value={editDeadline}
+              onChange={(e) => setEditDeadline(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none text-xs font-bold"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <select
+              value={editComplexity}
+              onChange={(e) => setEditComplexity(e.target.value as TaskComplexity)}
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none text-xs font-bold"
+            >
+              {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div className="flex space-x-2">
+              <button onClick={handleSaveEdit} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-all active:scale-90"><Check size={16} /></button>
+              <button onClick={() => setEditingTaskId(null)} className="bg-slate-100 text-slate-400 p-2 rounded-lg hover:bg-slate-200 transition-all"><X size={16} /></button>
+            </div>
           </div>
         </div>
       </div>
@@ -76,16 +91,30 @@ const TaskCard: React.FC<TaskCardProps> = ({
     <div 
       draggable={isDraggable} 
       onDragStart={(e) => onDragStart(e, task.id)}
-      className="bg-white p-4 md:p-5 shadow-sm border border-slate-200 rounded-[1.5rem] mb-4 group hover:border-indigo-300 transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full overflow-hidden"
+      className={`bg-white p-4 md:p-5 shadow-sm border rounded-[1.5rem] mb-4 group transition-all hover:shadow-md cursor-grab active:cursor-grabbing relative w-full overflow-hidden ${
+        isOverdue ? 'border-rose-300 bg-rose-50/20' : 'border-slate-200 hover:border-indigo-300'
+      }`}
     >
       <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="grid grid-cols-2 gap-0.5 opacity-20 group-hover:opacity-40 transition-opacity">
-            {[...Array(6)].map((_, i) => <div key={i} className="w-1 h-1 bg-slate-900 rounded-full"></div>)}
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center space-x-3">
+            <div className="grid grid-cols-2 gap-0.5 opacity-20 group-hover:opacity-40 transition-opacity">
+              {[...Array(6)].map((_, i) => <div key={i} className="w-1 h-1 bg-slate-900 rounded-full"></div>)}
+            </div>
+            <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg uppercase border tracking-wider ${getComplexityColor(task.complexity)}`}>
+              {task.complexity}
+            </span>
           </div>
-          <span className={`text-[10px] font-black px-3 py-1.5 rounded-lg uppercase border tracking-wider ${getComplexityColor(task.complexity)}`}>
-            {task.complexity}
-          </span>
+          {isOverdue && (
+            <span className="flex items-center text-[9px] font-black text-rose-600 uppercase bg-rose-100 px-2 py-1 rounded-md border border-rose-200">
+              <AlertTriangle size={12} className="mr-1" /> Quá hạn
+            </span>
+          )}
+          {isLateCompleted && (
+            <span className="flex items-center text-[9px] font-black text-amber-600 uppercase bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+              <Clock size={12} className="mr-1" /> Trễ hạn (0đ)
+            </span>
+          )}
         </div>
         
         <div className="flex items-center space-x-1">
@@ -115,6 +144,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
       
       <div className="pl-1 mb-5">
         <p className="font-bold text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words">{task.content}</p>
+        {task.deadline && (
+          <div className={`mt-3 flex items-center text-[10px] font-black uppercase tracking-wider ${isOverdue ? 'text-rose-500' : 'text-slate-400'}`}>
+            <Calendar size={12} className="mr-1.5" />
+            Hạn: {formatDate(task.deadline)}
+          </div>
+        )}
       </div>
       
       {task.attachments && task.attachments.length > 0 && (
@@ -138,8 +173,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <Clock size={14} className="mr-1.5 text-slate-300" />
           {task.status === TaskStatus.COMPLETED 
-            ? formatDuration((task.completedTime || 0) - task.startTime) 
-            : formatDuration(now - task.startTime)}
+            ? formatDate(task.completedTime) 
+            : 'Đang thực hiện'}
         </div>
         <div className="flex space-x-2">
           {task.status === TaskStatus.TO_DO && (
@@ -170,7 +205,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
 interface TaskBoardProps {
   tasks: Task[];
-  onAddTask: (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[]) => void;
+  onAddTask: (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number) => void;
   onUpdateStatus: (taskId: string, status: TaskStatus) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (taskId: string) => void;
@@ -179,10 +214,12 @@ interface TaskBoardProps {
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus, onUpdateTask, onDeleteTask }) => {
   const [newContent, setNewContent] = useState('');
   const [newComplexity, setNewComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
+  const [newDeadline, setNewDeadline] = useState('');
   const [newAttachments, setNewAttachments] = useState<Attachment[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [editComplexity, setEditComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
+  const [editDeadline, setEditDeadline] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [now, setNow] = useState(Date.now());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,7 +239,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const loaders = Array.from(files).map(file => {
+    // Explicitly cast to File[] to ensure the map function correctly handles the file objects
+    const loaders = (Array.from(files) as File[]).map(file => {
       return new Promise<Attachment>((resolve) => {
         const reader = new FileReader();
         reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
@@ -217,15 +255,22 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newContent.trim()) {
-      onAddTask(newContent.trim(), newComplexity, undefined, undefined, newAttachments);
+      const deadlineTs = newDeadline ? new Date(newDeadline).getTime() : undefined;
+      onAddTask(newContent.trim(), newComplexity, undefined, undefined, newAttachments, deadlineTs);
       setNewContent('');
       setNewAttachments([]);
+      setNewDeadline('');
     }
   };
 
   const handleSaveEdit = () => {
     if (editingTaskId && editContent.trim()) {
-      onUpdateTask(editingTaskId, { content: editContent.trim(), complexity: editComplexity });
+      const deadlineTs = editDeadline ? new Date(editDeadline).getTime() : undefined;
+      onUpdateTask(editingTaskId, { 
+        content: editContent.trim(), 
+        complexity: editComplexity,
+        deadline: deadlineTs
+      });
       setEditingTaskId(null);
     }
   };
@@ -260,32 +305,46 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
     <div className="space-y-6 w-full">
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             <input
               type="text"
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="Nội dung nhiệm vụ mới..."
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500 text-base font-bold shadow-inner"
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-indigo-500 text-base font-bold shadow-inner"
             />
-            <div className="flex gap-2">
-              <select
-                value={newComplexity}
-                onChange={(e) => setNewComplexity(e.target.value as TaskComplexity)}
-                className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none text-xs font-black uppercase tracking-widest"
-              >
-                {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-slate-100 text-slate-500 p-4 rounded-2xl border border-slate-200 hover:bg-slate-200 transition-all"
-              >
-                <Paperclip size={24} />
-              </button>
-              <button type="submit" className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95">
-                <Plus size={28} />
-              </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Hạn chót (Không bắt buộc)</label>
+                <input
+                  type="datetime-local"
+                  value={newDeadline}
+                  onChange={(e) => setNewDeadline(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none font-bold text-sm"
+                />
+              </div>
+              <div className="flex-1 min-w-[150px]">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Mức độ</label>
+                <select
+                  value={newComplexity}
+                  onChange={(e) => setNewComplexity(e.target.value as TaskComplexity)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none font-black uppercase tracking-widest text-xs"
+                >
+                  {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-6">
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-slate-100 text-slate-500 p-3.5 rounded-2xl border border-slate-200 hover:bg-slate-200 transition-all"
+                >
+                  <Paperclip size={20} />
+                </button>
+                <button type="submit" className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 font-black uppercase tracking-widest text-xs">
+                  Thêm việc
+                </button>
+              </div>
             </div>
           </div>
           {newAttachments.length > 0 && (
@@ -338,11 +397,18 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
                   editingTaskId={editingTaskId}
                   editContent={editContent}
                   editComplexity={editComplexity}
+                  editDeadline={editDeadline}
                   setEditContent={setEditContent}
                   setEditComplexity={setEditComplexity}
+                  setEditDeadline={setEditDeadline}
                   handleSaveEdit={handleSaveEdit}
                   setEditingTaskId={setEditingTaskId}
-                  handleStartEdit={(t) => { setEditingTaskId(t.id); setEditContent(t.content); setEditComplexity(t.complexity); }}
+                  handleStartEdit={(t) => { 
+                    setEditingTaskId(t.id); 
+                    setEditContent(t.content); 
+                    setEditComplexity(t.complexity);
+                    setEditDeadline(t.deadline ? new Date(t.deadline).toISOString().slice(0, 16) : '');
+                  }}
                   onDeleteTask={onDeleteTask}
                   onUpdateStatus={onUpdateStatus}
                   onViewAttachment={setViewerAtt}

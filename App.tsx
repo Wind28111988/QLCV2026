@@ -95,7 +95,7 @@ const App: React.FC = () => {
     }
   };
 
-  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[]) => {
+  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number) => {
     if (!currentUser) return;
     
     const newTask: Task = {
@@ -103,6 +103,7 @@ const App: React.FC = () => {
       userId: currentUser.id,
       content,
       startTime: Date.now(),
+      deadline: deadline,
       status: TaskStatus.TO_DO, 
       complexity,
       leadId: leadId || currentUser.id,
@@ -175,7 +176,6 @@ const App: React.FC = () => {
   const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
   
-  // Link Drive định dạng mới lh3 ổn định hơn
   const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
   return (

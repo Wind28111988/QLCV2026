@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { User, Task, TaskStatus, TaskComplexity } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Calendar, List, X, Trophy, Target, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, List, X, Trophy, Target, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 const SmartDateInput: React.FC<{
@@ -80,8 +80,14 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
     return [currentUser];
   }, [users, currentUser, isAD1, isAD2, selectedUnit]);
 
-  const getPoints = (complexity: TaskComplexity) => {
-    switch (complexity) {
+  const getPoints = (task: Task) => {
+    // Nếu quá hạn thì không được tính điểm
+    if (task.status === TaskStatus.COMPLETED && task.deadline && task.completedTime && task.completedTime > task.deadline) {
+      return 0;
+    }
+    if (task.status !== TaskStatus.COMPLETED) return 0;
+
+    switch (task.complexity) {
       case TaskComplexity.MEDIUM: return 1;
       case TaskComplexity.HARD: return 3;
       case TaskComplexity.VERY_HARD: return 5;
@@ -99,8 +105,8 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   }, [accessibleUsers]);
 
   const stats = useMemo(() => {
+    const now = Date.now();
     const filtered = tasks.filter(t => {
-      // Logic lọc theo quyền
       let hasAccess = false;
       if (isAD1) hasAccess = true;
       else if (isAD2) hasAccess = t.unit === currentUser.unit;
@@ -108,7 +114,6 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
 
       if (!hasAccess) return false;
 
-      // Lọc theo bộ lọc người dùng chọn
       const matchesUnit = isAD1 && selectedUnit ? t.unit === selectedUnit : true;
       const matchesStaff = selectedStaffId 
         ? (t.userId === selectedStaffId || t.leadId === selectedStaffId || t.collaboratorIds.includes(selectedStaffId)) 
@@ -124,17 +129,17 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
     const todoTasks = filtered.filter(t => t.status === TaskStatus.TO_DO);
     const inProgressTasks = filtered.filter(t => t.status === TaskStatus.IN_PROGRESS);
     const completedTasks = filtered.filter(t => t.status === TaskStatus.COMPLETED);
+    const overdueTasks = filtered.filter(t => t.status !== TaskStatus.COMPLETED && t.deadline && now > t.deadline);
 
     const performanceData = (isRegularUser ? [currentUser] : accessibleUsers)
       .map(u => {
-        const assignedCount = filtered.filter(t => t.userId === u.id).length;
-        const leadTasks = filtered.filter(t => t.leadId === u.id && t.status === TaskStatus.COMPLETED);
-        const score = leadTasks.reduce((acc, t) => acc + getPoints(t.complexity), 0);
+        const leadTasks = filtered.filter(t => t.leadId === u.id);
+        const score = leadTasks.reduce((acc, t) => acc + getPoints(t), 0);
 
         return {
           name: u.name,
           score: score,
-          count: assignedCount
+          count: leadTasks.length
         };
       })
       .sort((a, b) => b.score - a.score)
@@ -151,6 +156,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       todo: todoTasks,
       inProgress: inProgressTasks,
       completed: completedTasks,
+      overdue: overdueTasks,
       complexityChartData,
       performanceData
     };
@@ -205,12 +211,13 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           { label: 'Tổng số', count: stats.total.length, icon: List, color: 'indigo', list: stats.total },
           { label: 'Cần làm', count: stats.todo.length, icon: Target, color: 'slate', list: stats.todo },
           { label: 'Đang làm', count: stats.inProgress.length, icon: Clock, color: 'amber', list: stats.inProgress },
           { label: 'Hoàn thành', count: stats.completed.length, icon: CheckCircle2, color: 'emerald', list: stats.completed },
+          { label: 'Quá hạn', count: stats.overdue.length, icon: AlertCircle, color: 'rose', list: stats.overdue },
         ].map((item, idx) => {
           const Icon = item.icon;
           return (

@@ -42,7 +42,8 @@ export interface Task {
   userId: string;
   content: string;
   startTime: number;
-  completedTime?: number; // Sử dụng optional (undefined) thay vì null
+  deadline?: number; // Hạn chót (timestamp)
+  completedTime?: number; 
   status: TaskStatus;
   complexity: TaskComplexity;
   leadId: string;
@@ -55,5 +56,6 @@ export interface DashboardStats {
   totalTasks: number;
   completedTasks: number;
   inProgressTasks: number;
+  overdueTasks: number; // Thêm thống kê quá hạn
   tasksByUnit: Record<string, number>;
 }

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { User, Task, TaskStatus, TaskComplexity } from '../types';
-import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert } from 'lucide-react';
+import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { DEFAULT_PASSWORD } from '../constants';
 import SearchableSelect from './SearchableSelect';
 
@@ -84,6 +84,7 @@ const SmartDateInput: React.FC<{
 
 const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, currentUser, onUpdateTask, onResetUserPassword, initialSelectedUserId }) => {
   const [searchName, setSearchName] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState(''); // Thêm từ khóa nội dung
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(initialSelectedUserId || '');
   const [startDate, setStartDate] = useState('');
@@ -95,7 +96,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
     if (initialSelectedUserId) setSelectedUserId(initialSelectedUserId);
   }, [initialSelectedUserId]);
 
-  const isAD = currentUser.notes === 'AD';
+  const isAD = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const units = useMemo(() => Array.from(new Set(users.map(u => u.unit))), [users]);
   const isChief = currentUser.position.toLowerCase().includes('trưởng phòng') || isAD;
   
@@ -125,15 +126,16 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
       const matchesUnit = selectedUnit ? task.unit === selectedUnit : true;
       const matchesUser = selectedUserId ? (task.userId === selectedUserId || task.leadId === selectedUserId || task.collaboratorIds.includes(selectedUserId)) : true;
       const matchesName = searchName ? (creator?.name.toLowerCase().includes(searchName.toLowerCase()) || lead?.name.toLowerCase().includes(searchName.toLowerCase())) : true;
+      const matchesKeyword = searchKeyword ? task.content.toLowerCase().includes(searchKeyword.toLowerCase()) : true;
       const matchesComplexity = selectedComplexity ? task.complexity === selectedComplexity : true;
       
       const taskTime = task.startTime;
       const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
       const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
 
-      return matchesUnit && matchesUser && matchesName && matchesStart && matchesEnd && matchesComplexity;
+      return matchesUnit && matchesUser && matchesName && matchesKeyword && matchesStart && matchesEnd && matchesComplexity;
     });
-  }, [tasks, users, selectedUnit, selectedUserId, searchName, startDate, endDate, selectedComplexity, isAD, isChief, currentUser, triggerSearch]);
+  }, [tasks, users, selectedUnit, selectedUserId, searchName, searchKeyword, startDate, endDate, selectedComplexity, isAD, isChief, currentUser, triggerSearch]);
 
   const handleResetPass = (user: User) => {
     if (!isAD) return;
@@ -146,7 +148,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
   const formatFullDateTime = (timestamp: number | undefined) => {
     if (!timestamp) return '-';
     return new Date(timestamp).toLocaleString('vi-VN', {
-      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+      hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
     });
   };
 
@@ -168,6 +170,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
         'Nội dung': t.content,
         'Mức độ': t.complexity,
         'Trạng thái': t.status,
+        'Hạn chót': t.deadline ? formatFullDateTime(t.deadline) : '-',
         'Bắt đầu': formatFullDateTime(t.startTime),
         'Kết thúc': t.completedTime ? formatFullDateTime(t.completedTime) : '-'
       };
@@ -186,29 +189,43 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
           <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Bộ lọc tra cứu</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
-          {(isChief || isAD) && (
-            <>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Đơn vị công tác</label>
-                <select
-                  value={selectedUnit}
-                  onChange={(e) => { setSelectedUnit(e.target.value); setSelectedUserId(''); }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-sm"
-                >
-                  <option value="">Tất cả đơn vị</option>
-                  {units.map(u => <option key={u} value={u}>{u}</option>)}
-                </select>
-              </div>
-              <SearchableSelect
-                label="Nhân viên liên quan"
-                options={staffOptions}
-                value={selectedUserId}
-                onChange={setSelectedUserId}
-                placeholder="Tất cả nhân viên"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
+          <div className="lg:col-span-2">
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Tìm theo nội dung công việc</label>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="Nhập từ khóa nội dung..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-sm"
               />
-            </>
-          )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Đơn vị công tác</label>
+            <select
+              value={selectedUnit}
+              onChange={(e) => { setSelectedUnit(e.target.value); setSelectedUserId(''); }}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-sm"
+            >
+              <option value="">Tất cả đơn vị</option>
+              {units.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+          <SearchableSelect
+            label="Nhân viên liên quan"
+            options={staffOptions}
+            value={selectedUserId}
+            onChange={setSelectedUserId}
+            placeholder="Tất cả nhân viên"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+          <SmartDateInput label="Thời gian từ" value={startDate} onChange={setStartDate} />
+          <SmartDateInput label="Thời gian đến" value={endDate} onChange={setEndDate} />
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Mức độ phức tạp</label>
             <select
@@ -220,11 +237,6 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
               {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-          <SmartDateInput label="Thời gian từ" value={startDate} onChange={setStartDate} />
-          <SmartDateInput label="Thời gian đến" value={endDate} onChange={setEndDate} />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -249,6 +261,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Phụ trách</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nội dung</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hạn chót</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hoàn thành</th>
                 {isAD && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>}
               </tr>
@@ -258,9 +271,10 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 const assigner = users.find(u => u.id === task.userId);
                 const lead = users.find(u => u.id === task.leadId);
                 const isCompleted = task.status === TaskStatus.COMPLETED;
+                const isOverdue = !isCompleted && task.deadline && Date.now() > task.deadline;
                 
                 return (
-                  <tr key={task.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                  <tr key={task.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isOverdue ? 'bg-rose-50/30' : ''}`}>
                     <td className="px-6 py-4">
                       <div className="flex flex-col space-y-1">
                         <div className="flex items-center space-x-2">
@@ -279,10 +293,14 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center space-y-1">
                         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
-                          task.status === TaskStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'
-                        }`}>{task.status}</span>
+                          isCompleted ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                          isOverdue ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                        }`}>{isOverdue ? 'Quá hạn' : task.status}</span>
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{task.complexity}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono font-bold text-slate-400">
+                      {task.deadline ? formatFullDateTime(task.deadline) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -307,7 +325,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 )
               }) : (
                 <tr>
-                   <td colSpan={isAD ? 5 : 4} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
+                   <td colSpan={isAD ? 6 : 5} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
                 </tr>
               )}
             </tbody>
