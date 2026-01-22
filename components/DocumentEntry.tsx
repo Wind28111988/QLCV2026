@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Document } from '../types';
-import { Calendar, Save, FileText } from 'lucide-react';
+import { Calendar, Save, FileText, Loader2 } from 'lucide-react';
 
 const SmartDateInput: React.FC<{
   label: string;
@@ -74,7 +74,8 @@ const SmartDateInput: React.FC<{
   );
 };
 
-const DocumentEntry: React.FC<{ onAdd: (doc) => void }> = ({ onAdd }) => {
+const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = ({ onAdd }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<Document>>({
     refCode: '', 
     docNumber: '', 
@@ -87,13 +88,14 @@ const DocumentEntry: React.FC<{ onAdd: (doc) => void }> = ({ onAdd }) => {
     notes: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.summary) {
         alert('Vui lòng nhập trích yếu văn bản!');
         return;
     }
 
+    setIsSubmitting(true);
     const doc: Document = {
       ...formData as Document,
       id: Math.random().toString(36).substr(2, 9),
@@ -107,26 +109,36 @@ const DocumentEntry: React.FC<{ onAdd: (doc) => void }> = ({ onAdd }) => {
       deadline: formData.deadline || '',
       notes: formData.notes || ''
     };
-    onAdd(doc);
-    alert('Đã lưu văn bản thành công!');
-    setFormData({ 
-      refCode: '', 
-      docNumber: '', 
-      docDate: '', 
-      arrivalDate: '', 
-      senderUnit: '', 
-      taxCode: '', 
-      summary: '', 
-      deadline: '', 
-      notes: '' 
-    });
+
+    const success = await onAdd(doc);
+    
+    if (success) {
+        alert('Đã lưu văn bản vào hệ thống Cloud thành công!');
+        setFormData({ 
+          refCode: '', 
+          docNumber: '', 
+          docDate: '', 
+          arrivalDate: '', 
+          senderUnit: '', 
+          taxCode: '', 
+          summary: '', 
+          deadline: '', 
+          notes: '' 
+        });
+    } else {
+        alert('Lỗi: Không thể lưu dữ liệu lên Supabase. Vui lòng kiểm tra lại cấu hình bảng hoặc quyền RLS.');
+    }
+    setIsSubmitting(false);
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mb-12">
-      <div className="p-8 bg-indigo-600 text-white flex items-center space-x-3">
-        <FileText size={28} />
-        <h2 className="text-2xl font-black uppercase tracking-tight">Tiếp nhận văn bản đến</h2>
+      <div className="p-8 bg-indigo-600 text-white flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+            <FileText size={28} />
+            <h2 className="text-2xl font-black uppercase tracking-tight">Tiếp nhận văn bản đến</h2>
+        </div>
+        {isSubmitting && <Loader2 className="animate-spin" />}
       </div>
       <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -210,10 +222,11 @@ const DocumentEntry: React.FC<{ onAdd: (doc) => void }> = ({ onAdd }) => {
         <div className="md:col-span-2 pt-4">
           <button 
             type="submit" 
-            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-indigo-700 shadow-xl transition-all flex items-center justify-center space-x-2 active:scale-[0.98]"
+            disabled={isSubmitting}
+            className={`w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-indigo-700 shadow-xl transition-all flex items-center justify-center space-x-2 active:scale-[0.98] ${isSubmitting ? 'opacity-50' : ''}`}
           >
-            <Save size={20} /> 
-            <span>Lưu văn bản hệ thống</span>
+            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+            <span>{isSubmitting ? 'Đang lưu...' : 'Lưu văn bản hệ thống'}</span>
           </button>
         </div>
       </form>

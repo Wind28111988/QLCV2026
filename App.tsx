@@ -96,13 +96,18 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddDocument = async (doc: Document) => {
+  const handleAddDocument = async (doc: Document): Promise<boolean> => {
     setIsSyncing(true);
     const result = await cloudStorage.insertDocument(doc);
     if (result.success) {
       setDocuments(prev => [doc, ...prev]);
+      setIsSyncing(false);
+      return true;
+    } else {
+      console.error("Lỗi khi lưu văn bản:", result.error);
+      setIsSyncing(false);
+      return false;
     }
-    setIsSyncing(false);
   };
 
   const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string) => {
