@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { User, TaskStatus, TaskComplexity, Attachment, Document } from '../types';
+import { User, TaskStatus, TaskComplexity, Attachment, Document, Task } from '../types';
 import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock, FileText, Search } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
@@ -48,10 +48,11 @@ interface DelegationProps {
   currentUser: User;
   users: User[];
   documents: Document[];
+  tasks: Task[];
   onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string) => void;
 }
 
-const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, onAssign }) => {
+const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, tasks, onAssign }) => {
   const [content, setContent] = useState('');
   const [complexity, setComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
   const [deadline, setDeadline] = useState('');
@@ -62,13 +63,26 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
   const [selectedDocId, setSelectedDocId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Logic lọc và sắp xếp văn bản
   const docOptions = useMemo(() => {
-    return documents.map(d => ({
+    // Chỉ lấy văn bản chưa có Task nào liên kết (documentId)
+    const assignedDocIds = new Set(tasks.map(t => t.documentId).filter(id => !!id));
+    const unassignedDocs = documents.filter(d => !assignedDocIds.has(d.id));
+
+    // Sắp xếp: có hạn hoàn thành gần nhất -> xa nhất -> không có hạn
+    const sortedDocs = [...unassignedDocs].sort((a, b) => {
+      if (a.deadline && !b.deadline) return -1;
+      if (!a.deadline && b.deadline) return 1;
+      if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+      return b.createdAt - a.createdAt; // Ưu tiên văn bản mới nhập nếu cùng ko có hạn
+    });
+
+    return sortedDocs.map(d => ({
       id: d.id,
-      label: d.refCode,
+      label: d.refCode || `VB đến: ${d.docNumber}`,
       subLabel: d.summary
     }));
-  }, [documents]);
+  }, [documents, tasks]);
 
   const handleDocSelect = (docId: string) => {
     setSelectedDocId(docId);
@@ -87,7 +101,17 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
       const targetRank = parseInt(targetLevel.replace(/\D/g, '')) || 99;
       return targetRank > currRank;
     };
-    return users.filter(u => u.unit === selectedUnit && canDelegateTo(u.delegateLevel));
+    
+    const pool = users.filter(u => u.unit === selectedUnit && canDelegateTo(u.delegateLevel));
+    
+    // Logic sắp xếp: Phó trưởng phòng lên trước, sau đó mới tới nhân viên
+    return [...pool].sort((a, b) => {
+      const isViceA = a.position.toLowerCase().includes('phó trưởng phòng');
+      const isViceB = b.position.toLowerCase().includes('phó trưởng phòng');
+      if (isViceA && !isViceB) return -1;
+      if (!isViceA && isViceB) return 1;
+      return a.name.localeCompare(b.name, 'vi');
+    });
   }, [selectedUnit, users, currentUser.delegateLevel]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +140,13 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
         <div className="p-10 bg-indigo-600 text-white"><h2 className="text-3xl font-black flex items-center space-x-4"><Send size={32} /> <span>Giao nhiệm vụ công tác</span></h2></div>
         <form onSubmit={handleSubmit} className="p-10 space-y-8">
           <div className="bg-indigo-50 p-6 rounded-[1.5rem] border border-indigo-100 space-y-4">
-            <SearchableSelect label="Căn cứ vào văn bản gốc" options={docOptions} value={selectedDocId} onChange={handleDocSelect} placeholder="Tìm theo số ký hiệu hoặc trích yếu..." />
+            <SearchableSelect 
+              label="Căn cứ vào văn bản gốc (Chưa giao)" 
+              options={docOptions} 
+              value={selectedDocId} 
+              onChange={handleDocSelect} 
+              placeholder="Tìm theo số ký hiệu hoặc trích yếu..." 
+            />
             {selectedDocId && <p className="text-[10px] font-bold text-indigo-400 italic">Hệ thống sẽ tự động điền thông tin trích yếu và hạn xử lý từ văn bản.</p>}
           </div>
 
@@ -160,7 +190,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
           </div>
 
           <div className="space-y-6">
-            <SearchableSelect label="Người chủ trì *" options={targetEmployees.map(u => ({ id: u.id, label: u.name, subLabel: u.position }))} value={leadId} onChange={setLeadId} placeholder="Chọn nhân sự..." />
+            <SearchableSelect label="Người chủ trì * (Ưu tiên PTP)" options={targetEmployees.map(u => ({ id: u.id, label: u.name, subLabel: u.position }))} value={leadId} onChange={setLeadId} placeholder="Chọn nhân sự..." />
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Phối hợp thực hiện</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">

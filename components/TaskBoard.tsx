@@ -49,13 +49,24 @@ const ForwardModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task;
   const [leadId, setLeadId] = useState('');
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [selectedUnit, setSelectedUnit] = useState(currentUser.unit);
+  
   const targetEmployees = useMemo(() => {
     const canDelegateTo = (tl: string) => {
       const cr = parseInt(currentUser.delegateLevel.replace(/\D/g, '')) || 99, tr = parseInt(tl.replace(/\D/g, '')) || 99;
       return tr > cr;
     };
-    return allUsers.filter(u => u.unit === selectedUnit && canDelegateTo(u.delegateLevel));
+    const pool = allUsers.filter(u => u.unit === selectedUnit && canDelegateTo(u.delegateLevel));
+    
+    // Ưu tiên Phó trưởng phòng
+    return [...pool].sort((a, b) => {
+      const isViceA = a.position.toLowerCase().includes('phó trưởng phòng');
+      const isViceB = b.position.toLowerCase().includes('phó trưởng phòng');
+      if (isViceA && !isViceB) return -1;
+      if (!isViceA && isViceB) return 1;
+      return a.name.localeCompare(b.name, 'vi');
+    });
   }, [selectedUnit, allUsers, currentUser.delegateLevel]);
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">

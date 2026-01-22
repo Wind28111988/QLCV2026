@@ -127,9 +127,15 @@ const App: React.FC = () => {
       attachments: attachments || [],
       documentId
     };
+    
     setIsSyncing(true);
     const result = await cloudStorage.insertTask(newTask);
-    if (result.success) setTasks(prev => [newTask, ...prev]);
+    if (result.success) {
+      setTasks(prev => [newTask, ...prev]);
+    } else {
+      console.error("Lỗi lưu Task:", result.error);
+      alert("Không thể lưu công việc vào Database. Vui lòng kiểm tra kết nối mạng hoặc cấu hình bảng tasks trên Supabase.");
+    }
     setIsSyncing(false);
   };
 
@@ -231,7 +237,7 @@ const App: React.FC = () => {
           {activeTab === 'dashboard' && <Dashboard users={users} tasks={tasks} currentUser={currentUser} onUserClick={(uid) => { setViewedUserId(uid); setActiveTab('search'); }} />}
           {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} onForwardTask={handleForwardTask} currentUser={currentUser} allUsers={users} />}
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
-          {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} onAssign={addTask} />}
+          {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} tasks={tasks} onAssign={addTask} />}
           {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} />}
           {activeTab === 'doc-search' && isVT && <DocumentSearch documents={documents} tasks={tasks} users={users} />}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}
