@@ -178,6 +178,14 @@ const App: React.FC = () => {
   
   const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
+  // Lọc công việc cho Tab "Việc của tôi": Thuộc sở hữu/tham gia VÀ trong vòng 2 tháng (60 ngày)
+  const myRecentTasks = tasks.filter(t => {
+    const isRelated = t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id);
+    const twoMonthsAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
+    const isRecent = t.startTime >= twoMonthsAgo;
+    return isRelated && isRecent;
+  });
+
   return (
     <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row overflow-x-hidden">
       <Sidebar 
@@ -224,13 +232,16 @@ const App: React.FC = () => {
                    <AlertTriangle size={12} className="mr-1" /> {syncError}
                  </div>
                )}
+               {activeTab === 'tasks' && (
+                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter bg-slate-100 px-2 py-0.5 rounded italic">Hiển thị 60 ngày gần nhất</span>
+               )}
             </div>
           </div>
         </header>
 
         <div className="w-full">
           {activeTab === 'dashboard' && <Dashboard users={users} tasks={tasks} currentUser={currentUser} onUserClick={(uid) => { setViewedUserId(uid); setActiveTab('search'); }} />}
-          {activeTab === 'tasks' && <TaskBoard tasks={tasks.filter(t => t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id))} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} />}
+          {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} />}
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && (canDelegate ? <Delegation currentUser={currentUser} users={users} onAssign={addTask} /> : <div className="p-10 text-center font-bold text-slate-400 uppercase tracking-widest bg-white rounded-3xl border border-slate-100 shadow-sm">Bạn không có quyền truy cập chức năng này.</div>)}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}

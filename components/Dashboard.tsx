@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { User, Task, TaskStatus, TaskComplexity } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Calendar, List, X, Trophy, Target, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, List, X, Trophy, Target, Clock, CheckCircle2, AlertCircle, User as UserIcon } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 const SmartDateInput: React.FC<{
@@ -312,15 +312,21 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
               <button onClick={() => setDetailModal({ ...detailModal, isOpen: false })} className="p-2 hover:bg-slate-50 rounded-xl transition-all"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-              {detailModal.tasks.map(task => (
-                <div key={task.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <p className="font-bold text-slate-800">{task.content}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-md">{task.complexity}</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-slate-200 text-slate-600 rounded-md">{task.status}</span>
+              {detailModal.tasks.map(task => {
+                const lead = users.find(u => u.id === task.leadId);
+                return (
+                  <div key={task.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="font-bold text-slate-800 leading-relaxed mb-3">{task.content}</p>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
+                        <UserIcon size={12} className="mr-1" /> {lead?.name || 'Không xác định'}
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-1 bg-white text-slate-600 rounded border border-slate-200">{task.complexity}</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-1 bg-white text-slate-600 rounded border border-slate-200">{task.status}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
