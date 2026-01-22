@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { Task, User } from './types';
+import { Task, User, Document } from './types';
 
 export const cloudStorage = {
   async getUsers(): Promise<User[]> {
@@ -44,7 +44,8 @@ export const cloudStorage = {
         collaboratorIds: t.collaboratorIds || [],
         forwarderIds: t.forwarderIds || [],
         unit: String(t.unit),
-        attachments: t.attachments || []
+        attachments: t.attachments || [],
+        documentId: t.documentId ? String(t.documentId) : undefined
       })) as Task[];
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -52,26 +53,27 @@ export const cloudStorage = {
     }
   },
 
-  async upsertUser(user: User): Promise<{ success: boolean; error?: any }> {
+  async getDocuments(): Promise<Document[]> {
     try {
-      const { error } = await supabase.from('users').upsert({
-        id: user.id,
-        name: user.name,
-        position: user.position,
-        unit: user.unit,
-        gender: user.gender,
-        dob: user.dob,
-        phone: user.phone,
-        email: user.email,
-        password: user.password,
-        delegateLevel: user.delegateLevel,
-        notes: user.notes,
-        mustChangePassword: user.mustChangePassword
-      });
+      const { data, error } = await supabase.from('documents').select('*').order('createdAt', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        ...d,
+        createdAt: Number(d.createdAt)
+      })) as Document[];
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      return [];
+    }
+  },
+
+  async insertDocument(doc: Document): Promise<{ success: boolean; error?: any }> {
+    try {
+      const { error } = await supabase.from('documents').insert(doc);
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error('Error upserting user:', error);
+      console.error('Error inserting document:', error);
       return { success: false, error };
     }
   },
@@ -91,7 +93,8 @@ export const cloudStorage = {
         collaboratorIds: task.collaboratorIds || [],
         forwarderIds: task.forwarderIds || [],
         unit: task.unit,
-        attachments: task.attachments || []
+        attachments: task.attachments || [],
+        documentId: task.documentId || null
       });
       if (error) throw error;
       return { success: true };
@@ -120,6 +123,7 @@ export const cloudStorage = {
     }
   },
 
+  // Added deleteTask to resolve Property 'deleteTask' does not exist error in App.tsx
   async deleteTask(taskId: string): Promise<{ success: boolean; error?: any }> {
     try {
       const { error } = await supabase.from('tasks').delete().eq('id', taskId);
@@ -127,6 +131,16 @@ export const cloudStorage = {
       return { success: true };
     } catch (error) {
       console.error('Error deleting task:', error);
+      return { success: false, error };
+    }
+  },
+
+  async upsertUser(user: User): Promise<{ success: boolean; error?: any }> {
+    try {
+      const { error } = await supabase.from('users').upsert(user);
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
       return { success: false, error };
     }
   }

@@ -33,8 +33,22 @@ export interface User {
   email: string;
   password: string;    
   delegateLevel: string;
-  notes: string;
+  notes: string; // 'VT' for Văn thư, 'AD1'/'AD2' for Admin
   mustChangePassword: boolean;
+}
+
+export interface Document {
+  id: string;
+  refCode: string;       // Số ký hiệu
+  docNumber: string;    // Số văn bản đến
+  docDate: string;      // Ngày văn bản
+  arrivalDate: string;  // Ngày đến
+  senderUnit: string;   // Đơn vị gửi
+  taxCode: string;      // Mã số thuế
+  summary: string;      // Trích yếu
+  deadline: string;     // Hạn xử lý
+  notes: string;        // Ghi chú
+  createdAt: number;
 }
 
 export interface Task {
@@ -48,9 +62,10 @@ export interface Task {
   complexity: TaskComplexity;
   leadId: string;
   collaboratorIds: string[];
-  forwarderIds?: string[]; // Thêm để theo dõi những người đã chuyển tiếp việc này
+  forwarderIds?: string[]; 
   unit: string;
   attachments?: Attachment[];
+  documentId?: string; // Liên kết tới văn bản gốc
 }
 
 export interface DashboardStats {

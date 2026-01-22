@@ -1,51 +1,34 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { User, TaskStatus, TaskComplexity, Attachment } from '../types';
-import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock } from 'lucide-react';
+import { User, TaskStatus, TaskComplexity, Attachment, Document } from '../types';
+import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock, FileText, Search } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 const SmartDateTimeInput: React.FC<{
   label: string;
-  value: string; // ISO format: YYYY-MM-DDTHH:mm
+  value: string; 
   onChange: (val: string) => void;
 }> = ({ label, value, onChange }) => {
   const [displayText, setDisplayText] = useState('');
-
   useEffect(() => {
     if (value) {
       const [datePart, timePart] = value.split('T');
       const [y, m, d] = datePart.split('-');
-      const [hh, min] = timePart.split(':');
-      setDisplayText(`${d}/${m}/${y} ${hh}:${min}:00`);
-    } else {
-      setDisplayText('');
-    }
+      setDisplayText(`${d}/${m}/${y} ${timePart || '00:00'}:00`);
+    } else setDisplayText('');
   }, [value]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = e.target.value.replace(/\D/g, '');
-    if (raw.length > 14) raw = raw.slice(0, 14);
-
+    let raw = e.target.value.replace(/\D/g, '').slice(0, 14);
     let formatted = raw;
     if (raw.length >= 3 && raw.length <= 4) formatted = `${raw.slice(0, 2)}/${raw.slice(2)}`;
     else if (raw.length >= 5 && raw.length <= 8) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4)}`;
-    else if (raw.length >= 9 && raw.length <= 10) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8)}`;
-    else if (raw.length >= 11 && raw.length <= 12) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8, 10)}:${raw.slice(10)}`;
-    else if (raw.length >= 13) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8, 10)}:${raw.slice(10, 12)}:${raw.slice(12)}`;
-
+    else if (raw.length >= 9) formatted = `${raw.slice(0, 2)}/${raw.slice(2, 4)}/${raw.slice(4, 8)} ${raw.slice(8, 10)}:${raw.slice(10, 12)}`;
     setDisplayText(formatted);
-
-    if (raw.length === 14 || raw.length === 12) {
-      const d = raw.slice(0, 2);
-      const m = raw.slice(2, 4);
-      const y = raw.slice(4, 8);
-      const hh = raw.slice(8, 10);
-      const min = raw.slice(10, 12);
-      
-      const dateStr = `${y}-${m}-${d}T${hh}:${min}`;
-      if (!isNaN(new Date(dateStr).getTime())) {
-        onChange(dateStr);
-      }
+    if (raw.length >= 12) {
+      const d = raw.slice(0, 2), m = raw.slice(2, 4), y = raw.slice(4, 8), hh = raw.slice(8, 10), min = raw.slice(10, 12);
+      const ds = `${y}-${m}-${d}T${hh}:${min}`;
+      if (!isNaN(new Date(ds).getTime())) onChange(ds);
     }
   };
 
@@ -53,24 +36,9 @@ const SmartDateTimeInput: React.FC<{
     <div className="w-full">
       <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">{label}</label>
       <div className="relative group">
-        <input
-          type="text"
-          value={displayText}
-          onChange={handleTextChange}
-          placeholder="DD/MM/YYYY HH:mm:ss"
-          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-bold text-sm"
-        />
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center h-full">
-          <div className="relative flex items-center">
-            <Clock size={18} className="text-slate-400 group-hover:text-indigo-500 transition-colors pointer-events-none" />
-            <input
-              type="datetime-local"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-          </div>
-        </div>
+        <input type="text" value={displayText} onChange={handleTextChange} placeholder="DD/MM/YYYY HH:mm:ss" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm" />
+        <div className="absolute right-4 top-1/2 -translate-y-1/2"><Clock size={18} className="text-slate-300" /></div>
+        <input type="datetime-local" value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
       </div>
     </div>
   );
@@ -79,10 +47,11 @@ const SmartDateTimeInput: React.FC<{
 interface DelegationProps {
   currentUser: User;
   users: User[];
-  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number) => void;
+  documents: Document[];
+  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string) => void;
 }
 
-const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign }) => {
+const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, onAssign }) => {
   const [content, setContent] = useState('');
   const [complexity, setComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
   const [deadline, setDeadline] = useState('');
@@ -90,187 +59,121 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, onAssign })
   const [leadId, setLeadId] = useState('');
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [selectedDocId, setSelectedDocId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canDelegateTo = (targetLevel: string) => {
-    const currRank = parseInt(currentUser.delegateLevel.replace(/\D/g, '')) || 99;
-    const targetRank = parseInt(targetLevel.replace(/\D/g, '')) || 99;
-    return targetRank > currRank;
+  const docOptions = useMemo(() => {
+    return documents.map(d => ({
+      id: d.id,
+      label: d.refCode,
+      subLabel: d.summary
+    }));
+  }, [documents]);
+
+  const handleDocSelect = (docId: string) => {
+    setSelectedDocId(docId);
+    const doc = documents.find(d => d.id === docId);
+    if (doc) {
+      setContent(doc.summary);
+      if (doc.deadline) {
+        setDeadline(`${doc.deadline}T23:59`);
+      }
+    }
   };
 
-  const units = useMemo(() => Array.from(new Set(users.map(u => u.unit))), [users]);
-  
   const targetEmployees = useMemo(() => {
+    const canDelegateTo = (targetLevel: string) => {
+      const currRank = parseInt(currentUser.delegateLevel.replace(/\D/g, '')) || 99;
+      const targetRank = parseInt(targetLevel.replace(/\D/g, '')) || 99;
+      return targetRank > currRank;
+    };
     return users.filter(u => u.unit === selectedUnit && canDelegateTo(u.delegateLevel));
   }, [selectedUnit, users, currentUser.delegateLevel]);
-
-  const leadOptions = useMemo(() => {
-    return targetEmployees.map(u => ({
-      id: u.id,
-      label: u.name,
-      subLabel: `${u.position} - ${u.delegateLevel}`
-    }));
-  }, [targetEmployees]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const loaders = (Array.from(files) as File[]).map(file => {
-      return new Promise<Attachment>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
-        reader.readAsDataURL(file);
-      });
-    });
-    const newAtts = await Promise.all(loaders);
+    const newAtts = await Promise.all(Array.from(files).map(file => new Promise<Attachment>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
+      reader.readAsDataURL(file);
+    })));
     setAttachments([...attachments, ...newAtts]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !leadId) {
-      alert('Vui lòng nhập đầy đủ nội dung và chọn người chủ trì.');
-      return;
-    }
+    if (!content.trim() || !leadId) return;
     const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
-    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs);
-    alert(`Đã giao việc thành công cho ${users.find(u => u.id === leadId)?.name}.`);
-    setContent('');
-    setLeadId('');
-    setDeadline('');
-    setCollaboratorIds([]);
-    setAttachments([]);
-  };
-
-  const toggleCollaborator = (id: string) => {
-    setCollaboratorIds(prev => prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]);
+    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs, selectedDocId);
+    alert('Đã giao nhiệm vụ thành công!');
+    setContent(''); setLeadId(''); setDeadline(''); setCollaboratorIds([]); setAttachments([]); setSelectedDocId('');
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden mb-10">
-        <div className="p-10 bg-indigo-600 text-white relative overflow-hidden">
-          <div className="relative z-10">
-            <h2 className="text-3xl font-black flex items-center space-x-4">
-              <Send size={32} />
-              <span>Giao nhiệm vụ công tác</span>
-            </h2>
-            <div className="flex items-center space-x-4 mt-4">
-              <span className="bg-white/20 px-4 py-1.5 rounded-full text-xs font-black backdrop-blur-md uppercase tracking-widest border border-white/10">
-                Cấp bậc: {currentUser.delegateLevel}
-              </span>
-            </div>
-          </div>
-        </div>
-
+    <div className="max-w-4xl mx-auto pb-20">
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-10 bg-indigo-600 text-white"><h2 className="text-3xl font-black flex items-center space-x-4"><Send size={32} /> <span>Giao nhiệm vụ công tác</span></h2></div>
         <form onSubmit={handleSubmit} className="p-10 space-y-8">
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Nội dung công việc</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Nhập mô tả chi tiết nhiệm vụ..."
-              rows={4}
-              className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] px-6 py-5 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner font-medium text-lg leading-relaxed"
-            />
+          <div className="bg-indigo-50 p-6 rounded-[1.5rem] border border-indigo-100 space-y-4">
+            <SearchableSelect label="Căn cứ vào văn bản gốc" options={docOptions} value={selectedDocId} onChange={handleDocSelect} placeholder="Tìm theo số ký hiệu hoặc trích yếu..." />
+            {selectedDocId && <p className="text-[10px] font-bold text-indigo-400 italic">Hệ thống sẽ tự động điền thông tin trích yếu và hạn xử lý từ văn bản.</p>}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Nội dung công việc *</label>
+            <textarea value={content} onChange={e => setContent(e.target.value)} required rows={4} className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] px-6 py-5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-lg" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Mức độ phức tạp</label>
-              <select
-                value={complexity}
-                onChange={(e) => setComplexity(e.target.value as TaskComplexity)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none font-bold uppercase text-xs"
-              >
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Mức độ</label>
+              <select value={complexity} onChange={e => setComplexity(e.target.value as TaskComplexity)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-bold uppercase text-xs">
                 {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-
-            <SmartDateTimeInput
-              label="Hạn chót (Deadline)"
-              value={deadline}
-              onChange={setDeadline}
-            />
-
+            <SmartDateTimeInput label="Hạn chót" value={deadline} onChange={setDeadline} />
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Đơn vị tiếp nhận</label>
-              <select
-                value={selectedUnit}
-                onChange={(e) => { setSelectedUnit(e.target.value); setLeadId(''); setCollaboratorIds([]); }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none font-bold text-sm"
-              >
-                {units.map(u => <option key={u} value={u}>{u}</option>)}
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Đơn vị nhận</label>
+              <select value={selectedUnit} onChange={e => { setSelectedUnit(e.target.value); setLeadId(''); setCollaboratorIds([]); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-bold text-sm">
+                {Array.from(new Set(users.map(u => u.unit))).map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-3 ml-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Tài liệu đính kèm</label>
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-indigo-600 text-xs font-black uppercase flex items-center hover:underline">
-                <Paperclip size={14} className="mr-1" /> Thêm tệp
-              </button>
+            <div className="flex justify-between items-center mb-3 ml-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tệp đính kèm</label>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-indigo-600 text-xs font-black uppercase flex items-center hover:underline"><Paperclip size={14} className="mr-1" /> Thêm tệp</button>
             </div>
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
             {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner">
+              <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl">
                 {attachments.map((att, i) => (
-                  <div key={i} className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 shadow-sm">
-                    <span className="truncate max-w-[150px]">{att.name}</span>
-                    <button type="button" onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="text-rose-400 hover:text-rose-600"><X size={14} /></button>
+                  <div key={i} className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold">
+                    <span className="truncate max-w-[120px]">{att.name}</span>
+                    <button type="button" onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))} className="text-rose-500"><X size={12} /></button>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="space-y-4">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phân công nhân sự</label>
-            {targetEmployees.length > 0 ? (
-              <div className="space-y-6">
-                <SearchableSelect label="Người chủ trì" options={leadOptions} value={leadId} onChange={setLeadId} placeholder="Chọn người chủ trì" />
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-3 ml-1 tracking-widest">Người phối hợp</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-inner">
-                    {targetEmployees.filter(u => u.id !== leadId).map(u => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => toggleCollaborator(u.id)}
-                        className={`flex items-center space-x-2 px-4 py-3 rounded-xl text-xs border font-black uppercase transition-all ${
-                          collaboratorIds.includes(u.id) ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg scale-[1.02]' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
-                        }`}
-                      >
-                        <UserPlus size={14} />
-                        <span className="truncate">{u.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+          <div className="space-y-6">
+            <SearchableSelect label="Người chủ trì *" options={targetEmployees.map(u => ({ id: u.id, label: u.name, subLabel: u.position }))} value={leadId} onChange={setLeadId} placeholder="Chọn nhân sự..." />
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Phối hợp thực hiện</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {targetEmployees.filter(u => u.id !== leadId).map(u => (
+                  <button key={u.id} type="button" onClick={() => setCollaboratorIds(prev => prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id])} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${collaboratorIds.includes(u.id) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'}`}>
+                    {u.name}
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div className="p-8 bg-amber-50 border border-amber-100 rounded-[2rem] text-center">
-                <ShieldAlert size={40} className="mx-auto text-amber-500 mb-3" />
-                <h3 className="text-amber-800 font-bold uppercase text-xs tracking-widest">Không có nhân sự phù hợp</h3>
-                <p className="text-amber-600 text-[10px] font-bold mt-1 uppercase">Đơn vị này không có cấp dưới của bạn.</p>
-              </div>
-            )}
+            </div>
           </div>
 
-          <div className="pt-6">
-            <button
-              type="submit"
-              disabled={!leadId}
-              className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-2xl transition-all flex items-center justify-center space-x-3 ${
-                leadId ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100 active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-              }`}
-            >
-              <Send size={20} />
-              <span>Xác nhận giao nhiệm vụ</span>
-            </button>
-          </div>
+          <button type="submit" disabled={!leadId} className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl transition-all ${leadId ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]' : 'bg-slate-200 text-slate-400'}`}>Xác nhận giao nhiệm vụ</button>
         </form>
       </div>
     </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Task, TaskStatus, TaskComplexity, Attachment } from './types';
+import { User, Task, TaskStatus, TaskComplexity, Attachment, Document } from './types';
 import { Menu, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cloudStorage } from './storage';
 import Login from './components/Login';
@@ -11,27 +11,33 @@ import TaskBoard from './components/TaskBoard';
 import AdminSearch from './components/AdminSearch';
 import Delegation from './components/Delegation';
 import UserProfile from './components/UserProfile';
+import DocumentEntry from './components/DocumentEntry';
+import DocumentSearch from './components/DocumentSearch';
 
 const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tasks' | 'search' | 'delegate' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [viewedUserId, setViewedUserId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const initData = async () => {
       try {
-        const dbUsers = await cloudStorage.getUsers();
+        const [dbUsers, dbTasks, dbDocs] = await Promise.all([
+          cloudStorage.getUsers(),
+          cloudStorage.getTasks(),
+          cloudStorage.getDocuments()
+        ]);
         setUsers(dbUsers);
-
-        const dbTasks = await cloudStorage.getTasks();
         setTasks(dbTasks);
+        setDocuments(dbDocs);
 
         const savedUserStr = localStorage.getItem('tm_current_user');
         if (savedUserStr) {
@@ -70,14 +76,11 @@ const App: React.FC = () => {
     if (!currentUser) return;
     const updated = { ...currentUser, password: newPass, mustChangePassword: false };
     setIsSyncing(true);
-    setSyncError(null);
     const result = await cloudStorage.upsertUser(updated);
     if (result.success) {
       setUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
       setCurrentUser(updated);
       localStorage.setItem('tm_current_user', JSON.stringify(updated));
-    } else {
-      setSyncError("Lỗi khi cập nhật mật khẩu mới.");
     }
     setIsSyncing(false);
   };
@@ -87,17 +90,23 @@ const App: React.FC = () => {
     if (target) {
       const updated = { ...target, password: newPass, mustChangePassword: true };
       setIsSyncing(true);
-      const result = await cloudStorage.upsertUser(updated);
-      if (result.success) {
-        setUsers(prev => prev.map(u => u.id === target.id ? updated : u));
-      }
+      await cloudStorage.upsertUser(updated);
+      setUsers(prev => prev.map(u => u.id === target.id ? updated : u));
       setIsSyncing(false);
     }
   };
 
-  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number) => {
+  const handleAddDocument = async (doc: Document) => {
+    setIsSyncing(true);
+    const result = await cloudStorage.insertDocument(doc);
+    if (result.success) {
+      setDocuments(prev => [doc, ...prev]);
+    }
+    setIsSyncing(false);
+  };
+
+  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string) => {
     if (!currentUser) return;
-    
     const newTask: Task = {
       id: Math.random().toString(36).substr(2, 9),
       userId: currentUser.id,
@@ -110,35 +119,26 @@ const App: React.FC = () => {
       collaboratorIds: collaboratorIds || [],
       forwarderIds: [],
       unit: currentUser.unit,
-      attachments: attachments || []
+      attachments: attachments || [],
+      documentId
     };
-    
     setIsSyncing(true);
-    setSyncError(null);
     const result = await cloudStorage.insertTask(newTask);
-    if (result.success) {
-      setTasks(prev => [newTask, ...prev]);
-    } else {
-      setSyncError("Lỗi khóa ngoại hoặc kết nối: " + (result.error?.message || ""));
-    }
+    if (result.success) setTasks(prev => [newTask, ...prev]);
     setIsSyncing(false);
   };
 
   const updateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    
     const updates: Partial<Task> = {
       status: newStatus,
       completedTime: newStatus === TaskStatus.COMPLETED ? Date.now() : undefined,
       startTime: (newStatus === TaskStatus.IN_PROGRESS && task.status === TaskStatus.TO_DO) ? Date.now() : task.startTime
     };
-    
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
-    if (result.success) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
-    }
+    if (result.success) setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
     setIsSyncing(false);
   };
 
@@ -146,30 +146,23 @@ const App: React.FC = () => {
     if (!currentUser) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-
-    const currentForwarders = task.forwarderIds || [];
     const updates: Partial<Task> = {
       leadId: newLeadId,
       collaboratorIds: newCollaboratorIds,
-      forwarderIds: [...currentForwarders, currentUser.id],
+      forwarderIds: [...(task.forwarderIds || []), currentUser.id],
       status: TaskStatus.IN_PROGRESS,
       startTime: task.status === TaskStatus.TO_DO ? Date.now() : task.startTime
     };
-
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
-    if (result.success) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
-    }
+    if (result.success) setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
     setIsSyncing(false);
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
-    if (result.success) {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
-    }
+    if (result.success) setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
     setIsSyncing(false);
   };
 
@@ -177,9 +170,7 @@ const App: React.FC = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa công việc này?')) {
       setIsSyncing(true);
       const result = await cloudStorage.deleteTask(taskId);
-      if (result.success) {
-        setTasks(prev => prev.filter(t => t.id !== taskId));
-      }
+      if (result.success) setTasks(prev => prev.filter(t => t.id !== taskId));
       setIsSyncing(false);
     }
   };
@@ -188,7 +179,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Đang tải dữ liệu từ Cloud...</p>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Đang tải dữ liệu Cloud...</p>
       </div>
     );
   }
@@ -197,21 +188,13 @@ const App: React.FC = () => {
   if (currentUser.mustChangePassword) return <ChangePassword onComplete={handleChangePassword} />;
 
   const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
+  const isVT = currentUser.notes === 'VT';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
-  
-  const logoUrl = "https://lh3.googleusercontent.com/d/1FUb404uLq8ton8azidI9UrR1DLs7Byds";
 
-  // Lọc công việc liên quan đến người dùng hiện tại
   const myRecentTasks = tasks.filter(t => {
-    const isRelated = 
-      t.userId === currentUser.id || 
-      t.leadId === currentUser.id || 
-      t.collaboratorIds.includes(currentUser.id) ||
-      (t.forwarderIds && t.forwarderIds.includes(currentUser.id));
-      
+    const isRelated = t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id) || (t.forwarderIds && t.forwarderIds.includes(currentUser.id));
     const twoMonthsAgo = Date.now() - (60 * 24 * 60 * 60 * 1000);
-    const isRecent = t.startTime >= twoMonthsAgo;
-    return isRelated && isRecent;
+    return isRelated && t.startTime >= twoMonthsAgo;
   });
 
   return (
@@ -226,63 +209,26 @@ const App: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)}
       />
       
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-400 shadow-sm bg-white shrink-0 p-0.5 flex items-center justify-center">
-            <img 
-              src={logoUrl}
-              alt="Logo" 
-              className="w-full h-full object-contain scale-125"
-              onError={(e) => {
-                e.currentTarget.src = "https://www.gdt.gov.vn/wps/themes/html/V_GDT_Theme/images/logo.png";
-              }}
-            />
-          </div>
-          <span className="font-black text-slate-800 uppercase tracking-tight text-xs">Quản lý công việc</span>
-        </div>
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-500"><Menu size={24} /></button>
-      </div>
-
       <main className="flex-1 min-w-0 p-4 md:p-8 lg:p-10">
-        <header className="mb-6 md:mb-10 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-              {activeTab === 'dashboard' && 'Tổng quan'}
-              {activeTab === 'tasks' && 'Việc của tôi'}
-              {activeTab === 'search' && 'Báo cáo & Tra cứu'}
-              {activeTab === 'delegate' && 'Giao nhiệm vụ'}
-              {activeTab === 'profile' && 'Cá nhân'}
-              {isSyncing && <RefreshCw className="text-indigo-400 animate-spin" size={24} />}
-            </h1>
-            <div className="flex items-center mt-1 space-x-2">
-               {syncError && (
-                 <div className="flex items-center text-rose-500 text-[10px] font-black uppercase bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
-                   <AlertTriangle size={12} className="mr-1" /> {syncError}
-                 </div>
-               )}
-               {activeTab === 'tasks' && (
-                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter bg-slate-100 px-2 py-0.5 rounded italic">Hiển thị 60 ngày gần nhất</span>
-               )}
-            </div>
-          </div>
+        <header className="mb-6 flex justify-between items-center">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3 uppercase">
+            {activeTab === 'dashboard' && 'Tổng quan'}
+            {activeTab === 'tasks' && 'Việc của tôi'}
+            {activeTab === 'search' && 'Tra cứu & Báo cáo'}
+            {activeTab === 'delegate' && 'Giao việc'}
+            {activeTab === 'doc-entry' && 'Nhập văn bản'}
+            {activeTab === 'doc-search' && 'Tra cứu văn bản'}
+            {isSyncing && <RefreshCw className="text-indigo-400 animate-spin" size={24} />}
+          </h1>
         </header>
 
         <div className="w-full">
           {activeTab === 'dashboard' && <Dashboard users={users} tasks={tasks} currentUser={currentUser} onUserClick={(uid) => { setViewedUserId(uid); setActiveTab('search'); }} />}
-          {activeTab === 'tasks' && (
-            <TaskBoard 
-              tasks={myRecentTasks} 
-              onAddTask={addTask} 
-              onUpdateStatus={updateTaskStatus} 
-              onUpdateTask={updateTask} 
-              onDeleteTask={deleteTask}
-              onForwardTask={handleForwardTask}
-              currentUser={currentUser}
-              allUsers={users}
-            />
-          )}
+          {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} onForwardTask={handleForwardTask} currentUser={currentUser} allUsers={users} />}
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
-          {activeTab === 'delegate' && (canDelegate ? <Delegation currentUser={currentUser} users={users} onAssign={addTask} /> : <div className="p-10 text-center font-bold text-slate-400 uppercase tracking-widest bg-white rounded-3xl border border-slate-100 shadow-sm">Bạn không có quyền truy cập chức năng này.</div>)}
+          {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} onAssign={addTask} />}
+          {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} />}
+          {activeTab === 'doc-search' && isVT && <DocumentSearch documents={documents} tasks={tasks} users={users} />}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}
         </div>
       </main>
