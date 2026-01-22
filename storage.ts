@@ -80,7 +80,8 @@ export const cloudStorage = {
 
   async insertTask(task: Task): Promise<{ success: boolean; error?: any }> {
     try {
-      const { error } = await supabase.from('tasks').insert({
+      // QUAN TRỌNG: Nếu documentId là chuỗi rỗng hoặc undefined, phải gửi NULL để không vi phạm khóa ngoại
+      const dbTask = {
         id: task.id,
         userId: task.userId, 
         content: task.content,
@@ -94,8 +95,10 @@ export const cloudStorage = {
         forwarderIds: task.forwarderIds || [],
         unit: task.unit,
         attachments: task.attachments || [],
-        documentId: task.documentId || null
-      });
+        documentId: (task.documentId && task.documentId.trim() !== '') ? task.documentId : null
+      };
+
+      const { error } = await supabase.from('tasks').insert(dbTask);
       if (error) throw error;
       return { success: true };
     } catch (error) {
@@ -113,6 +116,10 @@ export const cloudStorage = {
       if ('deadline' in dataToUpdate && dataToUpdate.deadline === undefined) {
         (dataToUpdate as any).deadline = null;
       }
+      // Xử lý documentId khi update
+      if ('documentId' in dataToUpdate) {
+        dataToUpdate.documentId = (dataToUpdate.documentId && dataToUpdate.documentId.trim() !== '') ? dataToUpdate.documentId : (null as any);
+      }
       
       const { error } = await supabase.from('tasks').update(dataToUpdate).eq('id', taskId);
       if (error) throw error;
@@ -123,7 +130,6 @@ export const cloudStorage = {
     }
   },
 
-  // Added deleteTask to resolve Property 'deleteTask' does not exist error in App.tsx
   async deleteTask(taskId: string): Promise<{ success: boolean; error?: any }> {
     try {
       const { error } = await supabase.from('tasks').delete().eq('id', taskId);

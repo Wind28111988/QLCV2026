@@ -63,23 +63,26 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
   const [selectedDocId, setSelectedDocId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Logic lọc và sắp xếp văn bản
+  // 1. Logic lọc và sắp xếp văn bản
   const docOptions = useMemo(() => {
-    // Chỉ lấy văn bản chưa có Task nào liên kết (documentId)
+    // Chỉ lấy văn bản chưa có Task nào liên kết
     const assignedDocIds = new Set(tasks.map(t => t.documentId).filter(id => !!id));
     const unassignedDocs = documents.filter(d => !assignedDocIds.has(d.id));
 
-    // Sắp xếp: có hạn hoàn thành gần nhất -> xa nhất -> không có hạn
+    // Sắp xếp: có hạn hoàn thành gần nhất -> xa nhất -> không có hạn xử lý xếp cuối
     const sortedDocs = [...unassignedDocs].sort((a, b) => {
-      if (a.deadline && !b.deadline) return -1;
-      if (!a.deadline && b.deadline) return 1;
-      if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
-      return b.createdAt - a.createdAt; // Ưu tiên văn bản mới nhập nếu cùng ko có hạn
+      // Trường hợp cả hai đều không có hạn
+      if (!a.deadline && !b.deadline) return b.createdAt - a.createdAt;
+      // Ưu tiên bản có hạn lên đầu
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      // So sánh ngày (YYYY-MM-DD)
+      return a.deadline.localeCompare(b.deadline);
     });
 
     return sortedDocs.map(d => ({
       id: d.id,
-      label: d.refCode || `VB đến: ${d.docNumber}`,
+      label: d.refCode || `Số đến: ${d.docNumber}`,
       subLabel: d.summary
     }));
   }, [documents, tasks]);
@@ -95,6 +98,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     }
   };
 
+  // 2. Logic sắp xếp nhân sự: Phó trưởng phòng lên trước
   const targetEmployees = useMemo(() => {
     const canDelegateTo = (targetLevel: string) => {
       const currRank = parseInt(currentUser.delegateLevel.replace(/\D/g, '')) || 99;
@@ -104,12 +108,14 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     
     const pool = users.filter(u => u.unit === selectedUnit && canDelegateTo(u.delegateLevel));
     
-    // Logic sắp xếp: Phó trưởng phòng lên trước, sau đó mới tới nhân viên
     return [...pool].sort((a, b) => {
       const isViceA = a.position.toLowerCase().includes('phó trưởng phòng');
       const isViceB = b.position.toLowerCase().includes('phó trưởng phòng');
+      
       if (isViceA && !isViceB) return -1;
       if (!isViceA && isViceB) return 1;
+      
+      // Nếu cùng cấp thì xếp theo tên
       return a.name.localeCompare(b.name, 'vi');
     });
   }, [selectedUnit, users, currentUser.delegateLevel]);
@@ -141,13 +147,12 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
         <form onSubmit={handleSubmit} className="p-10 space-y-8">
           <div className="bg-indigo-50 p-6 rounded-[1.5rem] border border-indigo-100 space-y-4">
             <SearchableSelect 
-              label="Căn cứ vào văn bản gốc (Chưa giao)" 
+              label="Căn cứ vào văn bản gốc (Chỉ hiển thị VB chưa giao)" 
               options={docOptions} 
               value={selectedDocId} 
               onChange={handleDocSelect} 
-              placeholder="Tìm theo số ký hiệu hoặc trích yếu..." 
+              placeholder="Chọn văn bản căn cứ..." 
             />
-            {selectedDocId && <p className="text-[10px] font-bold text-indigo-400 italic">Hệ thống sẽ tự động điền thông tin trích yếu và hạn xử lý từ văn bản.</p>}
           </div>
 
           <div>
