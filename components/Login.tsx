@@ -110,7 +110,7 @@ const Login: React.FC<LoginProps> = ({ users, onLogin, onResetPassword }) => {
             )}
             
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tài khoản công vụ</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tài khoản</label>
               <div className="relative group">
                 <input
                   type="text"
