@@ -124,7 +124,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
-    const newAtts = await Promise.all(Array.from(files).map(file => new Promise<Attachment>((resolve) => {
+    // Explicitly cast to File to fix type 'unknown' errors
+    const newAtts = await Promise.all(Array.from(files).map((file: File) => new Promise<Attachment>((resolve) => {
       const reader = new FileReader();
       reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
       reader.readAsDataURL(file);

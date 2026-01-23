@@ -200,6 +200,7 @@ const App: React.FC = () => {
 
   const isAdmin = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   const isVT = currentUser.notes === 'VT';
+  const isX1 = currentUser.delegateLevel === 'X1';
   const canDelegate = currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
 
   const myRecentTasks = tasks.filter(t => {
@@ -239,7 +240,7 @@ const App: React.FC = () => {
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} tasks={tasks} onAssign={addTask} />}
           {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} />}
-          {activeTab === 'doc-search' && isVT && <DocumentSearch documents={documents} tasks={tasks} users={users} />}
+          {activeTab === 'doc-search' && (isVT || isX1) && <DocumentSearch documents={documents} tasks={tasks} users={users} />}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}
         </div>
       </main>

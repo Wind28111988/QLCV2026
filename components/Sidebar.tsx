@@ -31,14 +31,24 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isAdmin, cur
       { id: 'search', label: 'Tra cứu & Báo cáo', icon: Search },
       { id: 'delegate', label: 'Giao việc', icon: Send },
       { id: 'doc-entry', label: 'Nhập văn bản', icon: FilePlus, roles: ['VT'] },
-      { id: 'doc-search', label: 'Tra cứu văn bản', icon: FileSearch, roles: ['VT'] },
+      { id: 'doc-search', label: 'Tra cứu văn bản', icon: FileSearch },
       { id: 'profile', label: 'Hồ sơ cá nhân', icon: UserCircle },
     ];
 
     return items.filter(item => {
+      // Tab Giao việc
       if (item.id === 'delegate') {
         return currentUser.delegateLevel === 'X1' || currentUser.delegateLevel === 'X2';
       }
+      // Tab Nhập văn bản (Chỉ dành cho Văn thư)
+      if (item.id === 'doc-entry') {
+        return currentUser.notes === 'VT';
+      }
+      // Tab Tra cứu văn bản (Văn thư HOẶC cấp X1)
+      if (item.id === 'doc-search') {
+        return currentUser.notes === 'VT' || currentUser.delegateLevel === 'X1';
+      }
+      // Các tab khác có định nghĩa roles cố định
       if (item.roles) {
         return item.roles.includes(currentUser.notes);
       }
