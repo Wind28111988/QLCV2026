@@ -157,7 +157,9 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
     const completedTasks = filtered.filter(t => t.status === TaskStatus.COMPLETED);
     const overdueTasks = filtered.filter(t => t.status !== TaskStatus.COMPLETED && t.deadline && now > t.deadline);
 
+    // Lọc bỏ Trưởng phòng và Phó trưởng phòng khỏi biểu đồ hiệu năng
     const performanceData = (isRegularUser ? [currentUser] : accessibleUsers)
+      .filter(u => !u.position.toLowerCase().includes('trưởng phòng'))
       .map(u => {
         const leadTasks = filtered.filter(t => t.leadId === u.id);
         const score = leadTasks.reduce((acc, t) => acc + getPoints(t), 0);
@@ -168,8 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
           count: leadTasks.length
         };
       })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8);
+      .sort((a, b) => b.score - a.score);
 
     const complexityChartData = [
       { name: TaskComplexity.MEDIUM, value: filtered.filter(t => t.complexity === TaskComplexity.MEDIUM).length },
@@ -265,20 +266,33 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[450px]">
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center shrink-0">
             <Trophy className="mr-2 text-amber-500" size={18} /> Hiệu năng nhân sự
           </h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.performanceData} layout="vertical" margin={{ left: -10, right: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} fontSize={10} fontWeight="700" />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="score" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex-1 w-full overflow-y-auto custom-scrollbar pr-2">
+            <div style={{ height: `${Math.max(stats.performanceData.length * 45, 300)}px`, width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.performanceData} layout="vertical" margin={{ left: -10, right: 30, top: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    width={100} 
+                    fontSize={10} 
+                    fontWeight="700" 
+                  />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }} 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 
+                  />
+                  <Bar dataKey="score" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
@@ -286,10 +300,10 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center">
             <Target className="mr-2 text-indigo-500" size={18} /> Phân loại mức độ
           </h3>
-          <div className="h-[300px] w-full">
+          <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats.complexityChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                <Pie data={stats.complexityChartData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={5} dataKey="value">
                   {stats.complexityChartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />
