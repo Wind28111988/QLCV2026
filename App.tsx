@@ -222,14 +222,22 @@ const App: React.FC = () => {
       />
       
       <main className="flex-1 min-w-0 p-4 md:p-8 lg:p-10">
-        <header className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3 uppercase">
+        <header className="mb-6 flex items-center gap-4">
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            title="Mở menu"
+          >
+            <Menu size={24} />
+          </button>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3 uppercase flex-1">
             {activeTab === 'dashboard' && 'Tổng quan'}
             {activeTab === 'tasks' && 'Việc của tôi'}
             {activeTab === 'search' && 'Tra cứu & Báo cáo'}
             {activeTab === 'delegate' && 'Giao việc'}
             {activeTab === 'doc-entry' && 'Nhập văn bản'}
             {activeTab === 'doc-search' && 'Tra cứu văn bản'}
+            {activeTab === 'profile' && 'Hồ sơ cá nhân'}
             {isSyncing && <RefreshCw className="text-indigo-400 animate-spin" size={24} />}
           </h1>
         </header>
