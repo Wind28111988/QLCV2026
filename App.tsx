@@ -110,8 +110,13 @@ const App: React.FC = () => {
     }
   };
 
-  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string) => {
+  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string) => {
     if (!currentUser) return;
+    
+    // Nếu không truyền targetUnit (tự tạo việc), lấy đơn vị của người tạo.
+    // Nếu có truyền (giao việc), lấy đơn vị của người được giao.
+    const finalUnit = targetUnit || currentUser.unit;
+
     const newTask: Task = {
       id: Math.random().toString(36).substr(2, 9),
       userId: currentUser.id,
@@ -123,7 +128,7 @@ const App: React.FC = () => {
       leadId: leadId || currentUser.id,
       collaboratorIds: collaboratorIds || [],
       forwarderIds: [],
-      unit: currentUser.unit,
+      unit: finalUnit,
       attachments: attachments || [],
       documentId
     };
@@ -153,7 +158,7 @@ const App: React.FC = () => {
     setIsSyncing(false);
   };
 
-  const handleForwardTask = async (taskId: string, newLeadId: string, newCollaboratorIds: string[]) => {
+  const handleForwardTask = async (taskId: string, newLeadId: string, newCollaboratorIds: string[], newUnit: string) => {
     if (!currentUser) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -162,7 +167,8 @@ const App: React.FC = () => {
       collaboratorIds: newCollaboratorIds,
       forwarderIds: [...(task.forwarderIds || []), currentUser.id],
       status: TaskStatus.IN_PROGRESS,
-      startTime: task.status === TaskStatus.TO_DO ? Date.now() : task.startTime
+      startTime: task.status === TaskStatus.TO_DO ? Date.now() : task.startTime,
+      unit: newUnit // Cập nhật đơn vị công việc sang đơn vị của người nhận mới
     };
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);

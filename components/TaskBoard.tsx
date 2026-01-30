@@ -45,7 +45,7 @@ const SmartDateTimeInput: React.FC<{ label: string; value: string; onChange: (va
   );
 };
 
-const ForwardModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task; currentUser: User; allUsers: User[]; onForward: (taskId: string, leadId: string, collaboratorIds: string[]) => void; }> = ({ isOpen, onClose, task, currentUser, allUsers, onForward }) => {
+const ForwardModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task; currentUser: User; allUsers: User[]; onForward: (taskId: string, leadId: string, collaboratorIds: string[], unit: string) => void; }> = ({ isOpen, onClose, task, currentUser, allUsers, onForward }) => {
   const [leadId, setLeadId] = useState('');
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [selectedUnit, setSelectedUnit] = useState(currentUser.unit);
@@ -72,7 +72,7 @@ const ForwardModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task;
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-8 bg-indigo-600 text-white flex justify-between items-center"><h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3"><Send size={24} /> Chuyển tiếp công việc</h2><button onClick={onClose}><X size={20} /></button></div>
-        <form onSubmit={e => { e.preventDefault(); if(leadId) onForward(task.id, leadId, collaboratorIds); onClose(); }} className="p-8 space-y-6 overflow-y-auto">
+        <form onSubmit={e => { e.preventDefault(); if(leadId) onForward(task.id, leadId, collaboratorIds, selectedUnit); onClose(); }} className="p-8 space-y-6 overflow-y-auto">
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-slate-600 text-sm">"{task.content}"</div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -124,7 +124,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files) return;
-    // Explicitly cast to File to fix type 'unknown' errors
     const newAtts = await Promise.all(Array.from(files).map((file: File) => new Promise<Attachment>((resolve) => {
       const reader = new FileReader();
       reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });

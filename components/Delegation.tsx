@@ -49,7 +49,7 @@ interface DelegationProps {
   users: User[];
   documents: Document[];
   tasks: Task[];
-  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string) => void;
+  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string) => void;
 }
 
 const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, tasks, onAssign }) => {
@@ -123,7 +123,6 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    // Explicitly cast to File to fix type 'unknown' errors
     const newAtts = await Promise.all(Array.from(files).map((file: File) => new Promise<Attachment>((resolve) => {
       const reader = new FileReader();
       reader.onload = (ev) => resolve({ name: file.name, type: file.type, data: ev.target?.result as string });
@@ -136,7 +135,8 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     e.preventDefault();
     if (!content.trim() || !leadId) return;
     const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
-    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs, selectedDocId);
+    // Truyền thêm selectedUnit để gán đơn vị công việc cho đúng đơn vị nhận việc
+    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit);
     alert('Đã giao nhiệm vụ thành công!');
     setContent(''); setLeadId(''); setDeadline(''); setCollaboratorIds([]); setAttachments([]); setSelectedDocId('');
   };
