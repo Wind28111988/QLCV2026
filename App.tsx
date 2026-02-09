@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Task, TaskStatus, TaskComplexity, Attachment, Document } from './types';
+import { User, Task, TaskStatus, TaskComplexity, TaskCategory, Attachment, Document } from './types';
 import { Menu, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cloudStorage } from './storage';
 import Login from './components/Login';
@@ -110,12 +110,12 @@ const App: React.FC = () => {
     }
   };
 
-  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string) => {
+  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory) => {
     if (!currentUser) return;
     
-    // Nếu không truyền targetUnit (tự tạo việc), lấy đơn vị của người tạo.
-    // Nếu có truyền (giao việc), lấy đơn vị của người được giao.
     const finalUnit = targetUnit || currentUser.unit;
+    // Mặc định là KHAC nếu không được truyền từ Delegation
+    const finalCategory = category || TaskCategory.KHAC;
 
     const newTask: Task = {
       id: Math.random().toString(36).substr(2, 9),
@@ -125,6 +125,7 @@ const App: React.FC = () => {
       deadline: deadline,
       status: TaskStatus.TO_DO, 
       complexity,
+      category: finalCategory,
       leadId: leadId || currentUser.id,
       collaboratorIds: collaboratorIds || [],
       forwarderIds: [],
@@ -168,7 +169,7 @@ const App: React.FC = () => {
       forwarderIds: [...(task.forwarderIds || []), currentUser.id],
       status: TaskStatus.IN_PROGRESS,
       startTime: task.status === TaskStatus.TO_DO ? Date.now() : task.startTime,
-      unit: newUnit // Cập nhật đơn vị công việc sang đơn vị của người nhận mới
+      unit: newUnit 
     };
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Document } from '../types';
+import { Document, TaskCategory } from '../types';
 import { Calendar, Save, FileText, Loader2 } from 'lucide-react';
 
 const SmartDateInput: React.FC<{
@@ -84,6 +84,7 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = 
     senderUnit: '', 
     taxCode: '', 
     summary: '', 
+    category: TaskCategory.KIEM_TRA,
     deadline: '', 
     notes: ''
   });
@@ -106,6 +107,7 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = 
       arrivalDate: formData.arrivalDate || '',
       senderUnit: formData.senderUnit || '',
       taxCode: formData.taxCode || '',
+      category: formData.category || TaskCategory.KIEM_TRA,
       deadline: formData.deadline || '',
       notes: formData.notes || ''
     };
@@ -122,6 +124,7 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = 
           senderUnit: '', 
           taxCode: '', 
           summary: '', 
+          category: TaskCategory.KIEM_TRA,
           deadline: '', 
           notes: '' 
         });
@@ -172,6 +175,17 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = 
             value={formData.arrivalDate || ''} 
             onChange={v => setFormData({...formData, arrivalDate: v})} 
         />
+
+        <div className="md:col-span-2">
+          <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Nhóm công việc *</label>
+          <select 
+            value={formData.category} 
+            onChange={e => setFormData({...formData, category: e.target.value as TaskCategory})} 
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          >
+            {Object.values(TaskCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </select>
+        </div>
 
         <div>
           <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Đơn vị gửi</label>

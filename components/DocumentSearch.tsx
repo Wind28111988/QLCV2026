@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Document, Task, User, TaskStatus } from '../types';
+import { Document, Task, User, TaskStatus, TaskCategory } from '../types';
 import { Search, FileText, User as UserIcon, CheckCircle, Clock, AlertCircle, Calendar, Filter, FileSpreadsheet } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
@@ -57,6 +57,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
   const [keyword, setKeyword] = useState('');
   const [staffId, setStaffId] = useState('all');
   const [status, setStatus] = useState('all');
+  const [category, setCategory] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -73,38 +74,37 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
     return documents.filter(doc => {
       const linkedTask = tasks.find(t => t.documentId === doc.id);
       
-      // Lọc từ khóa
       const matchesKeyword = !keyword || (
         doc.refCode.toLowerCase().includes(keyword.toLowerCase()) || 
         doc.summary.toLowerCase().includes(keyword.toLowerCase()) ||
         doc.taxCode.toLowerCase().includes(keyword.toLowerCase())
       );
 
-      // Lọc cán bộ
       let matchesStaff = true;
       if (staffId === 'unassigned') matchesStaff = !linkedTask;
       else if (staffId !== 'all') matchesStaff = linkedTask?.leadId === staffId;
 
-      // Lọc trạng thái
       let matchesStatus = true;
       if (status === 'unassigned') matchesStatus = !linkedTask;
       else if (status !== 'all') matchesStatus = linkedTask?.status === status;
 
-      // Lọc ngày đến
+      const matchesCategory = category === 'all' || doc.category === category;
+
       const arrivalTs = doc.arrivalDate ? new Date(doc.arrivalDate).getTime() : 0;
       const startTs = startDate ? new Date(startDate).getTime() : 0;
       const endTs = endDate ? new Date(endDate).getTime() : Infinity;
       const matchesDate = arrivalTs >= startTs && arrivalTs <= (endDate ? endTs + 86400000 : Infinity);
 
-      return matchesKeyword && matchesStaff && matchesStatus && matchesDate;
+      return matchesKeyword && matchesStaff && matchesStatus && matchesDate && matchesCategory;
     });
-  }, [documents, tasks, keyword, staffId, status, startDate, endDate]);
+  }, [documents, tasks, keyword, staffId, status, category, startDate, endDate]);
 
   const exportToExcel = () => {
     const data = filteredDocs.map(doc => {
       const linkedTask = tasks.find(t => t.documentId === doc.id);
       const leadUser = linkedTask ? users.find(u => u.id === linkedTask.leadId) : null;
       return {
+        'Nhóm việc': doc.category,
         'Số ký hiệu': doc.refCode,
         'Số văn bản đến': doc.docNumber,
         'Ngày văn bản': formatDate(doc.docDate),
@@ -133,7 +133,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
             <h2 className="font-black uppercase tracking-widest text-sm">Bộ lọc nâng cao</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-2">
             <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Từ khóa tra cứu</label>
             <div className="relative">
@@ -150,6 +150,13 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
               {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Nhóm công việc</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium">
+              <option value="all">Tất cả nhóm</option>
+              {Object.values(TaskCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row items-end gap-4">
@@ -158,7 +165,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
             <SmartDateInput label="Đến ngày" value={endDate} onChange={setEndDate} />
           </div>
           <div className="flex gap-2 w-full lg:w-auto">
-            <button onClick={() => { setKeyword(''); setStaffId('all'); setStatus('all'); setStartDate(''); setEndDate(''); }} className="flex-1 lg:flex-none px-6 py-2.5 bg-slate-100 text-slate-500 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-colors">Xóa bộ lọc</button>
+            <button onClick={() => { setKeyword(''); setStaffId('all'); setStatus('all'); setCategory('all'); setStartDate(''); setEndDate(''); }} className="flex-1 lg:flex-none px-6 py-2.5 bg-slate-100 text-slate-500 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-colors">Xóa bộ lọc</button>
             <button onClick={exportToExcel} className="flex-1 lg:flex-none px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-emerald-100 active:scale-95">
                 <FileSpreadsheet size={16} />
                 <span>Xuất Excel</span>
@@ -171,6 +178,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
         <table className="w-full text-left text-xs whitespace-nowrap">
           <thead className="bg-slate-50 border-b border-slate-100 uppercase font-black text-slate-400 tracking-widest">
             <tr>
+              <th className="px-6 py-4">Nhóm việc</th>
               <th className="px-6 py-4">Ký hiệu/Số đến</th>
               <th className="px-6 py-4">Ngày VB/Đến</th>
               <th className="px-6 py-4">Đơn vị/MST</th>
@@ -187,6 +195,9 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
               
               return (
                 <tr key={doc.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 uppercase">{doc.category}</span>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-800">{doc.refCode}</div>
                     <div className="text-[10px] text-slate-400">Đến: {doc.docNumber}</div>
@@ -228,7 +239,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
               );
             }) : (
                 <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center text-slate-300 italic uppercase font-black tracking-widest">Không tìm thấy văn bản phù hợp</td>
+                    <td colSpan={8} className="px-6 py-20 text-center text-slate-300 italic uppercase font-black tracking-widest">Không tìm thấy văn bản phù hợp</td>
                 </tr>
             )}
           </tbody>

@@ -11,6 +11,14 @@ export enum TaskComplexity {
   VERY_HARD = 'Rất khó'
 }
 
+export enum TaskCategory {
+  KIEM_TRA = 'Kiểm tra',
+  PHOI_HOP_CQCN = 'Phối hợp cơ quan chức năng',
+  TRA_LOI_CS = 'Trả lời chính sách',
+  PHOI_HOP_NOI_BO = 'Phối hợp nội bộ',
+  KHAC = 'Khác'
+}
+
 export enum Gender {
   MALE = 'Nam',
   FEMALE = 'Nữ'
@@ -46,6 +54,7 @@ export interface Document {
   senderUnit: string;   // Đơn vị gửi
   taxCode: string;      // Mã số thuế
   summary: string;      // Trích yếu
+  category: TaskCategory; // Nhóm công việc
   deadline: string;     // Hạn xử lý
   notes: string;        // Ghi chú
   createdAt: number;
@@ -60,6 +69,7 @@ export interface Task {
   completedTime?: number; 
   status: TaskStatus;
   complexity: TaskComplexity;
+  category: TaskCategory; // Nhóm công việc
   leadId: string;
   collaboratorIds: string[];
   forwarderIds?: string[]; 

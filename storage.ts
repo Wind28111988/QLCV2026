@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { Task, User, Document } from './types';
+import { Task, User, Document, TaskCategory } from './types';
 
 export const cloudStorage = {
   async getUsers(): Promise<User[]> {
@@ -40,6 +40,7 @@ export const cloudStorage = {
         completedTime: t.completedTime ? Number(t.completedTime) : undefined,
         status: t.status,
         complexity: t.complexity,
+        category: t.category || TaskCategory.KHAC,
         leadId: String(t.leadId),
         collaboratorIds: t.collaboratorIds || [],
         forwarderIds: t.forwarderIds || [],
@@ -59,7 +60,8 @@ export const cloudStorage = {
       if (error) throw error;
       return (data || []).map((d: any) => ({
         ...d,
-        createdAt: Number(d.createdAt)
+        createdAt: Number(d.createdAt),
+        category: d.category || TaskCategory.KHAC
       })) as Document[];
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -80,7 +82,6 @@ export const cloudStorage = {
 
   async insertTask(task: Task): Promise<{ success: boolean; error?: any }> {
     try {
-      // QUAN TRỌNG: Nếu documentId là chuỗi rỗng hoặc undefined, phải gửi NULL để không vi phạm khóa ngoại
       const dbTask = {
         id: task.id,
         userId: task.userId, 
@@ -90,6 +91,7 @@ export const cloudStorage = {
         completedTime: task.completedTime || null,
         status: task.status,
         complexity: task.complexity,
+        category: task.category,
         leadId: task.leadId,
         collaboratorIds: task.collaboratorIds || [],
         forwarderIds: task.forwarderIds || [],
@@ -116,7 +118,6 @@ export const cloudStorage = {
       if ('deadline' in dataToUpdate && dataToUpdate.deadline === undefined) {
         (dataToUpdate as any).deadline = null;
       }
-      // Xử lý documentId khi update
       if ('documentId' in dataToUpdate) {
         dataToUpdate.documentId = (dataToUpdate.documentId && dataToUpdate.documentId.trim() !== '') ? dataToUpdate.documentId : (null as any);
       }

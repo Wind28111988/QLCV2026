@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { User, Task, TaskStatus, TaskComplexity } from '../types';
+import { User, Task, TaskStatus, TaskComplexity, TaskCategory } from '../types';
 import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert, AlertTriangle, RotateCcw } from 'lucide-react';
 import { DEFAULT_PASSWORD } from '../constants';
 import SearchableSelect from './SearchableSelect';
@@ -100,12 +100,12 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
   const [endDate, setEndDate] = useState('');
   const [selectedComplexity, setSelectedComplexity] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   useEffect(() => {
     if (initialSelectedUserId) setSelectedUserId(initialSelectedUserId);
   }, [initialSelectedUserId]);
 
-  // Phân quyền: Chỉ AD1 và VT mới có quyền tra cứu tất cả
   const isFullAccess = currentUser.notes === 'AD1' || currentUser.notes === 'VT';
   const isAD = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
   
@@ -128,22 +128,15 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
   const filteredTasks = useMemo(() => {
     const now = Date.now();
     return tasks.filter(task => {
-      const creator = users.find(u => u.id === task.userId);
-      const lead = users.find(u => u.id === task.leadId);
-      if (!creator && !lead) return false;
-
-      // Logic phân quyền mới:
-      // Nếu là AD1/VT thì được xem hết.
-      // Nếu không, chỉ được xem việc của chính mình (UserId, LeadId hoặc trong CollaboratorIds)
-      const isMyTask = task.userId === currentUser.id || task.leadId === currentUser.id || task.collaboratorIds.includes(currentUser.id);
+      const isMyTask = task.userId === currentUser.id || task.leadId === currentUser.id || task.collaboratorIds.includes(currentUser.id) || (task.forwarderIds && task.forwarderIds.includes(currentUser.id));
       
       if (!isFullAccess && !isMyTask) return false;
 
-      // Áp dụng các bộ lọc khác
       const matchesUnit = (isFullAccess && selectedUnit) ? task.unit === selectedUnit : true;
       const matchesUser = (isFullAccess && selectedUserId) ? (task.userId === selectedUserId || task.leadId === selectedUserId || task.collaboratorIds.includes(selectedUserId)) : true;
       const matchesKeyword = searchKeyword ? task.content.toLowerCase().includes(searchKeyword.toLowerCase()) : true;
       const matchesComplexity = selectedComplexity ? task.complexity === selectedComplexity : true;
+      const matchesCategory = selectedCategory ? task.category === selectedCategory : true;
       
       let matchesStatus = true;
       if (selectedStatus) {
@@ -158,9 +151,9 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
       const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
       const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
 
-      return matchesUnit && matchesUser && matchesKeyword && matchesStart && matchesEnd && matchesComplexity && matchesStatus;
+      return matchesUnit && matchesUser && matchesKeyword && matchesStart && matchesEnd && matchesComplexity && matchesStatus && matchesCategory;
     });
-  }, [tasks, users, selectedUnit, selectedUserId, searchKeyword, startDate, endDate, selectedComplexity, selectedStatus, isFullAccess, currentUser]);
+  }, [tasks, users, selectedUnit, selectedUserId, searchKeyword, startDate, endDate, selectedComplexity, selectedStatus, selectedCategory, isFullAccess, currentUser]);
 
   const handleClearFilters = () => {
     setSearchKeyword('');
@@ -170,22 +163,15 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
     setEndDate('');
     setSelectedComplexity('');
     setSelectedStatus('');
+    setSelectedCategory('');
   };
 
   const handleResetPass = (user: User) => {
-    // Chỉ AD mới reset được pass
     if (!isAD) return;
     if (window.confirm(`Xác nhận reset mật khẩu của nhân sự ${user.name} về mặc định (${DEFAULT_PASSWORD})?`)) {
       onResetUserPassword(user.email, DEFAULT_PASSWORD);
       alert('Đã reset mật khẩu thành công!');
     }
-  };
-
-  const formatDurationDetailed = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
   };
 
   const exportToExcel = () => {
@@ -196,6 +182,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
         'Người giao': creator?.name || 'N/A',
         'Người chủ trì': lead?.name || 'N/A',
         'Đơn vị': t.unit,
+        'Nhóm công việc': t.category,
         'Nội dung': t.content,
         'Mức độ': t.complexity,
         'Trạng thái': t.status,
@@ -242,7 +229,6 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
             </div>
           </div>
           
-          {/* Chỉ hiển thị bộ lọc đơn vị và nhân viên nếu có quyền Full Access (AD1, VT) */}
           {isFullAccess && (
             <>
               <div>
@@ -273,14 +259,14 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
             <SmartDateInput label="Thời gian đến" value={endDate} onChange={setEndDate} />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Mức độ phức tạp</label>
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Nhóm công việc</label>
             <select
-              value={selectedComplexity}
-              onChange={(e) => setSelectedComplexity(e.target.value)}
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-sm"
             >
-              <option value="">Tất cả mức độ</option>
-              {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="">Tất cả nhóm</option>
+              {Object.values(TaskCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
           <div>
@@ -314,17 +300,20 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
             <thead className="bg-slate-50/80 border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Phụ trách</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nhóm việc</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nội dung</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hạn chót</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hoàn thành</th>
-                {isAD && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>}
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length > 0 ? filteredTasks.map(task => {
                 const assigner = users.find(u => u.id === task.userId);
                 const lead = users.find(u => u.id === task.leadId);
+                const collaborators = users.filter(u => task.collaboratorIds.includes(u.id));
+                const forwarders = users.filter(u => task.forwarderIds?.includes(u.id));
+                
                 const isCompleted = task.status === TaskStatus.COMPLETED;
                 const isOverdue = !isCompleted && task.deadline && Date.now() > task.deadline;
                 
@@ -332,15 +321,34 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                   <tr key={task.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isOverdue ? 'bg-rose-50/30' : ''}`}>
                     <td className="px-6 py-4">
                       <div className="flex flex-col space-y-1">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2">
                            <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-400 font-black uppercase">Giao</span>
                            <span className="font-bold text-slate-700">{assigner?.name}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        
+                        {forwarders.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="text-[8px] bg-rose-50 px-1.5 py-0.5 rounded-md text-rose-400 font-black uppercase">Qua</span>
+                            {forwarders.map(f => {
+                              const isX2 = f.position.toLowerCase().includes('phó trưởng phòng');
+                              return (
+                                <span key={f.id} className={`font-black ${isX2 ? 'text-rose-600' : 'text-slate-500'}`}>{f.name}</span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-1">
                            <span className="text-[8px] bg-indigo-50 px-1.5 py-0.5 rounded-md text-indigo-400 font-black uppercase">Làm</span>
                            <span className="font-black text-indigo-600">{lead?.name}</span>
+                           {collaborators.map(c => (
+                             <span key={c.id} className="font-black text-indigo-400 text-[10px]">, {c.name}</span>
+                           ))}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200">{task.category}</span>
                     </td>
                     <td className="px-6 py-4 max-w-md overflow-hidden text-ellipsis whitespace-normal">
                       <p className="font-medium text-slate-600 leading-relaxed text-sm">{task.content}</p>
@@ -351,29 +359,19 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                           isCompleted ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
                           isOverdue ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'
                         }`}>{isOverdue ? 'Quá hạn' : task.status}</span>
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{task.complexity}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-slate-400">
                       {task.deadline ? formatFullDateTime(task.deadline) : '-'}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-mono text-slate-500 font-bold">{isCompleted ? formatFullDateTime(task.completedTime) : '--:--'}</span>
-                        {isCompleted && <span className="text-indigo-500 font-black text-[9px] mt-0.5 flex items-center uppercase"><Timer size={10} className="mr-1" /> {formatDurationDetailed(task.completedTime! - task.startTime)}</span>}
-                      </div>
-                    </td>
                     {isAD && (
                       <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <button 
-                            onClick={() => lead && handleResetPass(lead)}
-                            title={`Reset pass cho: ${lead?.name}`}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                          >
-                            <KeyRound size={16} />
-                          </button>
-                        </div>
+                        <button 
+                          onClick={() => lead && handleResetPass(lead)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                        >
+                          <KeyRound size={16} />
+                        </button>
                       </td>
                     )}
                   </tr>

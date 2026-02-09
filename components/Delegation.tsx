@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { User, TaskStatus, TaskComplexity, Attachment, Document, Task } from '../types';
+import { User, TaskStatus, TaskComplexity, TaskCategory, Attachment, Document, Task } from '../types';
 import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock, FileText, Search } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
@@ -49,7 +49,7 @@ interface DelegationProps {
   users: User[];
   documents: Document[];
   tasks: Task[];
-  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string) => void;
+  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory) => void;
 }
 
 const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, tasks, onAssign }) => {
@@ -83,7 +83,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     return sortedDocs.map(d => ({
       id: d.id,
       label: d.refCode || `Số đến: ${d.docNumber}`,
-      subLabel: d.summary
+      subLabel: `[${d.category}] ${d.summary}`
     }));
   }, [documents, tasks]);
 
@@ -135,8 +135,11 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     e.preventDefault();
     if (!content.trim() || !leadId) return;
     const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
-    // Truyền thêm selectedUnit để gán đơn vị công việc cho đúng đơn vị nhận việc
-    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit);
+    
+    const doc = documents.find(d => d.id === selectedDocId);
+    const category = doc?.category || TaskCategory.KHAC;
+
+    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit, category);
     alert('Đã giao nhiệm vụ thành công!');
     setContent(''); setLeadId(''); setDeadline(''); setCollaboratorIds([]); setAttachments([]); setSelectedDocId('');
   };
