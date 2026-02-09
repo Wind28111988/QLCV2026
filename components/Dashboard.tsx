@@ -136,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       let hasAccess = false;
       if (isAD1) hasAccess = true;
       else if (isAD2) hasAccess = t.unit === currentUser.unit;
-      else hasAccess = (t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id) || (t.forwarderIds && t.forwarderIds.includes(currentUser.id)));
+      else hasAccess = (t.userId === currentUser.id || t.leadId === currentUser.id || t.collaboratorIds.includes(currentUser.id) || Boolean(t.forwarderIds?.includes(currentUser.id)));
 
       if (!hasAccess) return false;
 
