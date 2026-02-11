@@ -16,6 +16,8 @@ export enum TaskCategory {
   PHOI_HOP_CQCN = 'Phối hợp cơ quan chức năng',
   TRA_LOI_CS = 'Trả lời chính sách',
   PHOI_HOP_NOI_BO = 'Phối hợp nội bộ',
+  PHOI_HOP_CA = 'Phối hợp công an',
+  KIEN_NGHI_KTNN = 'Thực hiện kiến nghị KTNN',
   KHAC = 'Khác'
 }
 

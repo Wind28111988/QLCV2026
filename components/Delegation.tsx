@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { User, TaskStatus, TaskComplexity, TaskCategory, Attachment, Document, Task } from '../types';
-import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock, FileText, Search } from 'lucide-react';
+import { Send, Users, UserPlus, AlertCircle, ShieldAlert, Paperclip, X, Calendar, Clock, FileText, Search, CheckSquare, Square } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 const SmartDateTimeInput: React.FC<{
@@ -65,18 +65,13 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
 
   // 1. Logic lọc và sắp xếp văn bản
   const docOptions = useMemo(() => {
-    // Chỉ lấy văn bản chưa có Task nào liên kết
     const assignedDocIds = new Set(tasks.map(t => t.documentId).filter(id => !!id));
     const unassignedDocs = documents.filter(d => !assignedDocIds.has(d.id));
 
-    // Sắp xếp: có hạn hoàn thành gần nhất -> xa nhất -> không có hạn xử lý xếp cuối
     const sortedDocs = [...unassignedDocs].sort((a, b) => {
-      // Trường hợp cả hai đều không có hạn
       if (!a.deadline && !b.deadline) return b.createdAt - a.createdAt;
-      // Ưu tiên bản có hạn lên đầu
       if (!a.deadline) return 1;
       if (!b.deadline) return -1;
-      // So sánh ngày (YYYY-MM-DD)
       return a.deadline.localeCompare(b.deadline);
     });
 
@@ -98,7 +93,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     }
   };
 
-  // 2. Logic sắp xếp nhân sự: Phó trưởng phòng lên trước
+  // 2. Logic sắp xếp nhân sự
   const targetEmployees = useMemo(() => {
     const canDelegateTo = (targetLevel: string) => {
       const currRank = parseInt(currentUser.delegateLevel.replace(/\D/g, '')) || 99;
@@ -115,7 +110,6 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
       if (isViceA && !isViceB) return -1;
       if (!isViceA && isViceB) return 1;
       
-      // Nếu cùng cấp thì xếp theo tên
       return a.name.localeCompare(b.name, 'vi');
     });
   }, [selectedUnit, users, currentUser.delegateLevel]);
@@ -131,15 +125,56 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     setAttachments([...attachments, ...newAtts]);
   };
 
+  const handleSelectAllCollaborators = () => {
+    const poolIds = targetEmployees.map(u => u.id);
+    
+    // Nếu tất cả đã được chọn (bao gồm cả leadId nếu có) thì bỏ chọn hết
+    const allIdsInCollaborators = poolIds.every(id => collaboratorIds.includes(id) || id === leadId);
+    
+    if (allIdsInCollaborators) {
+      setCollaboratorIds([]);
+      setLeadId('');
+    } else {
+      // Nếu chưa chọn leadId, chọn người đầu tiên làm leadId, còn lại vào collaboratorIds
+      if (!leadId && poolIds.length > 0) {
+        setLeadId(poolIds[0]);
+        setCollaboratorIds(poolIds.slice(1));
+      } else {
+        // Nếu đã có leadId, chỉ chọn những người khác làm phối hợp
+        const others = poolIds.filter(id => id !== leadId);
+        setCollaboratorIds(others);
+      }
+    }
+  };
+
+  const isAllCollaboratorsSelected = useMemo(() => {
+    const poolIds = targetEmployees.map(u => u.id);
+    if (poolIds.length === 0) return false;
+    return poolIds.every(id => collaboratorIds.includes(id) || id === leadId);
+  }, [targetEmployees, leadId, collaboratorIds]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !leadId) return;
-    const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
     
+    // Nếu leadId trống nhưng có người trong collaboratorIds, lấy người đầu tiên làm leadId
+    let finalLeadId = leadId;
+    let finalCollaboratorIds = [...collaboratorIds];
+    
+    if (!finalLeadId && finalCollaboratorIds.length > 0) {
+      finalLeadId = finalCollaboratorIds[0];
+      finalCollaboratorIds.shift();
+    }
+
+    if (!content.trim() || !finalLeadId) {
+      alert('Vui lòng nhập nội dung và chọn nhân sự thực hiện!');
+      return;
+    }
+
+    const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
     const doc = documents.find(d => d.id === selectedDocId);
     const category = doc?.category || TaskCategory.KHAC;
 
-    onAssign(content, complexity, leadId, collaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit, category);
+    onAssign(content, complexity, finalLeadId, finalCollaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit, category);
     alert('Đã giao nhiệm vụ thành công!');
     setContent(''); setLeadId(''); setDeadline(''); setCollaboratorIds([]); setAttachments([]); setSelectedDocId('');
   };
@@ -199,7 +234,18 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
           </div>
 
           <div className="space-y-6">
-            <SearchableSelect label="Người chủ trì * (Ưu tiên PTP)" options={targetEmployees.map(u => ({ id: u.id, label: u.name, subLabel: u.position }))} value={leadId} onChange={setLeadId} placeholder="Chọn nhân sự..." />
+            <div className="flex justify-between items-center mb-1 ml-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Người chủ trì * (Ưu tiên PTP)</label>
+              <button 
+                type="button" 
+                onClick={handleSelectAllCollaborators}
+                className="flex items-center space-x-1 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:text-indigo-800 transition-colors"
+              >
+                {isAllCollaboratorsSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                <span>{isAllCollaboratorsSelected ? 'Bỏ chọn toàn bộ' : 'Chọn toàn bộ phòng'}</span>
+              </button>
+            </div>
+            <SearchableSelect label="" options={targetEmployees.map(u => ({ id: u.id, label: u.name, subLabel: u.position }))} value={leadId} onChange={(val) => { setLeadId(val); setCollaboratorIds(prev => prev.filter(id => id !== val)); }} placeholder="Chọn nhân sự..." />
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Phối hợp thực hiện</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -212,7 +258,7 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
             </div>
           </div>
 
-          <button type="submit" disabled={!leadId} className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl transition-all ${leadId ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]' : 'bg-slate-200 text-slate-400'}`}>Xác nhận giao nhiệm vụ</button>
+          <button type="submit" disabled={!content.trim() || (!leadId && collaboratorIds.length === 0)} className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl transition-all ${(!content.trim() || (!leadId && collaboratorIds.length === 0)) ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.98]'}`}>Xác nhận giao nhiệm vụ</button>
         </form>
       </div>
     </div>
