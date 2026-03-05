@@ -78,6 +78,7 @@ export interface Task {
   unit: string;
   attachments?: Attachment[];
   documentId?: string; // Liên kết tới văn bản gốc
+  outDocNumber?: string; // Số văn bản đi
 }
 
 export interface DashboardStats {

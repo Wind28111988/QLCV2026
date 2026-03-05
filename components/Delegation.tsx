@@ -49,7 +49,7 @@ interface DelegationProps {
   users: User[];
   documents: Document[];
   tasks: Task[];
-  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory) => void;
+  onAssign: (content: string, complexity: TaskComplexity, leadId: string, collaboratorIds: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory, outDocNumber?: string) => void;
 }
 
 const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, tasks, onAssign }) => {
@@ -61,7 +61,15 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
   const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [selectedDocId, setSelectedDocId] = useState('');
+  const [outDocNumber, setOutDocNumber] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    const tasksThisYear = tasks.filter(t => new Date(t.startTime).getFullYear() === currentYear);
+    const maxOutDocNumber = Math.max(...tasksThisYear.map(t => parseInt(t.outDocNumber || '0') || 0), 0);
+    setOutDocNumber((maxOutDocNumber + 1).toString());
+  }, [tasks]);
 
   // 1. Logic lọc và sắp xếp văn bản
   const docOptions = useMemo(() => {
@@ -174,9 +182,15 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
     const doc = documents.find(d => d.id === selectedDocId);
     const category = doc?.category || TaskCategory.KHAC;
 
-    onAssign(content, complexity, finalLeadId, finalCollaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit, category);
+    onAssign(content, complexity, finalLeadId, finalCollaboratorIds, attachments, deadlineTs, selectedDocId, selectedUnit, category, outDocNumber);
     alert('Đã giao nhiệm vụ thành công!');
     setContent(''); setLeadId(''); setDeadline(''); setCollaboratorIds([]); setAttachments([]); setSelectedDocId('');
+    
+    // Refresh outDocNumber
+    const currentYear = new Date().getFullYear();
+    const tasksThisYear = tasks.filter(t => new Date(t.startTime).getFullYear() === currentYear);
+    const maxOutDocNumber = Math.max(...tasksThisYear.map(t => parseInt(t.outDocNumber || '0') || 0), 0);
+    setOutDocNumber((maxOutDocNumber + 1).toString());
   };
 
   return (
@@ -207,6 +221,10 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
               </select>
             </div>
             <SmartDateTimeInput label="Hạn chót" value={deadline} onChange={setDeadline} />
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Số văn bản đi</label>
+              <input type="text" value={outDocNumber} onChange={e => setOutDocNumber(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-bold text-sm" />
+            </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Đơn vị nhận</label>
               <select value={selectedUnit} onChange={e => { setSelectedUnit(e.target.value); setLeadId(''); setCollaboratorIds([]); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 font-bold text-sm">

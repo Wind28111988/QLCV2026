@@ -107,9 +107,25 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
   const [content, setContent] = useState('');
   const [complexity, setComplexity] = useState<TaskComplexity>(TaskComplexity.MEDIUM);
   const [deadline, setDeadline] = useState('');
+  const [outDocNumber, setOutDocNumber] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [forwardModal, setForwardModal] = useState<{ isOpen: boolean, task: Task | null }>({ isOpen: false, task: null });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const nextOutDocNumber = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const tasksThisYear = tasks.filter(t => {
+        const startTimeYear = new Date(t.startTime).getFullYear();
+        return startTimeYear === currentYear && t.outDocNumber;
+    });
+    
+    const maxNum = tasksThisYear.reduce((max, t) => {
+        const num = parseInt(t.outDocNumber!, 10);
+        return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    
+    return (maxNum + 1).toString();
+  }, [tasks]);
 
   const filteredTasks = tasks.filter(t => t.content.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -118,6 +134,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
     setContent(task.content);
     setComplexity(task.complexity);
     setDeadline(task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : '');
+    setOutDocNumber(task.outDocNumber || '');
     setAttachments(task.attachments || []);
     setIsModalOpen(true);
   };
@@ -135,9 +152,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const deadlineTs = deadline ? new Date(deadline).getTime() : undefined;
-    if (editingTask) onUpdateTask(editingTask.id, { content, complexity, deadline: deadlineTs, attachments });
-    else onAddTask(content, complexity, undefined, [], attachments, deadlineTs);
-    setIsModalOpen(false); setEditingTask(null); setContent(''); setComplexity(TaskComplexity.MEDIUM); setDeadline(''); setAttachments([]);
+    if (editingTask) onUpdateTask(editingTask.id, { content, complexity, deadline: deadlineTs, attachments, outDocNumber });
+    else onAddTask(content, complexity, undefined, [], attachments, deadlineTs, undefined, undefined, undefined, outDocNumber);
+    setIsModalOpen(false); setEditingTask(null); setContent(''); setComplexity(TaskComplexity.MEDIUM); setDeadline(''); setOutDocNumber(''); setAttachments([]);
   };
 
   return (
@@ -189,6 +206,10 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
                   {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <SmartDateTimeInput label="Hạn chót" value={deadline} onChange={setDeadline} />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Số văn bản đi (Gợi ý: {nextOutDocNumber})</label>
+                <input type="text" value={outDocNumber} onChange={e => setOutDocNumber(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm" placeholder={`VD: ${nextOutDocNumber}`} />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tệp đính kèm</label><button type="button" onClick={() => fileInputRef.current?.click()} className="text-indigo-600 text-[10px] font-black uppercase"><Paperclip size={14} className="inline mr-1" /> Thêm tệp</button></div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Task, TaskStatus, TaskComplexity, TaskCategory, Attachment, Document } from './types';
+import { User, Task, TaskStatus, TaskComplexity, TaskCategory, Attachment, Document as Doc } from './types';
 import { Menu, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cloudStorage } from './storage';
 import Login from './components/Login';
@@ -17,7 +17,7 @@ import DocumentSearch from './components/DocumentSearch';
 const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<Doc[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -96,7 +96,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddDocument = async (doc: Document): Promise<boolean> => {
+  const handleAddDocument = async (doc: Doc): Promise<boolean> => {
     setIsSyncing(true);
     const result = await cloudStorage.insertDocument(doc);
     if (result.success) {
@@ -110,7 +110,7 @@ const App: React.FC = () => {
     }
   };
 
-  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory) => {
+  const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory, outDocNumber?: string) => {
     if (!currentUser) return;
     
     const finalUnit = targetUnit || currentUser.unit;
@@ -131,7 +131,8 @@ const App: React.FC = () => {
       forwarderIds: [],
       unit: finalUnit,
       attachments: attachments || [],
-      documentId
+      documentId,
+      outDocNumber
     };
     
     setIsSyncing(true);
@@ -252,9 +253,9 @@ const App: React.FC = () => {
         <div className="w-full">
           {activeTab === 'dashboard' && <Dashboard users={users} tasks={tasks} currentUser={currentUser} onUserClick={(uid) => { setViewedUserId(uid); setActiveTab('search'); }} />}
           {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} onForwardTask={handleForwardTask} currentUser={currentUser} allUsers={users} />}
-          {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
+          {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} documents={documents} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} tasks={tasks} onAssign={addTask} />}
-          {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} />}
+          {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} allDocuments={documents} />}
           {activeTab === 'doc-search' && (isVT || isX1) && <DocumentSearch documents={documents} tasks={tasks} users={users} />}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}
         </div>

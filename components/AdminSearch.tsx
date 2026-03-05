@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { User, Task, TaskStatus, TaskComplexity, TaskCategory } from '../types';
+import { User, Task, TaskStatus, TaskComplexity, TaskCategory, Document as Doc } from '../types';
 import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert, AlertTriangle, RotateCcw } from 'lucide-react';
 import { DEFAULT_PASSWORD } from '../constants';
 import SearchableSelect from './SearchableSelect';
@@ -10,6 +10,7 @@ declare const XLSX: any;
 interface AdminSearchProps {
   users: User[];
   tasks: Task[];
+  documents: Doc[];
   isAdmin: boolean;
   currentUser: User;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
@@ -92,7 +93,7 @@ const SmartDateInput: React.FC<{
   );
 };
 
-const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, currentUser, onUpdateTask, onResetUserPassword, initialSelectedUserId }) => {
+const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAdmin, currentUser, onUpdateTask, onResetUserPassword, initialSelectedUserId }) => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(initialSelectedUserId || '');
@@ -178,11 +179,16 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
     const exportData = filteredTasks.map(t => {
       const creator = users.find(u => u.id === t.userId);
       const lead = users.find(u => u.id === t.leadId);
+      const linkedDoc = t.documentId ? documents.find(d => d.id === t.documentId) : null;
       return {
         'Người giao': creator?.name || 'N/A',
         'Người chủ trì': lead?.name || 'N/A',
         'Đơn vị': t.unit,
         'Nhóm công việc': t.category,
+        'Số văn bản đi': t.outDocNumber || '-',
+        'Ký hiệu/Số đến': linkedDoc ? `${linkedDoc.refCode} / ${linkedDoc.docNumber}` : '-',
+        'Ngày VB/Đến': linkedDoc ? `${linkedDoc.docDate} / ${linkedDoc.arrivalDate}` : '-',
+        'Đơn vị/MST': linkedDoc ? `${linkedDoc.senderUnit} / ${linkedDoc.taxCode}` : '-',
         'Nội dung': t.content,
         'Mức độ': t.complexity,
         'Trạng thái': t.status,
@@ -301,6 +307,10 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
               <tr>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Phụ trách</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nhóm việc</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Số VB đi</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Ký hiệu/Số đến</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Ngày VB/Đến</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Đơn vị/MST</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nội dung</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hạn chót</th>
@@ -316,6 +326,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 
                 const isCompleted = task.status === TaskStatus.COMPLETED;
                 const isOverdue = !isCompleted && task.deadline && Date.now() > task.deadline;
+                const linkedDoc = task.documentId ? documents.find(d => d.id === task.documentId) : null;
                 
                 return (
                   <tr key={task.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isOverdue ? 'bg-rose-50/30' : ''}`}>
@@ -350,6 +361,33 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                     <td className="px-6 py-4">
                       <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200">{task.category}</span>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-indigo-600">{task.outDocNumber || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {linkedDoc ? (
+                        <>
+                          <div className="font-bold text-slate-800">{linkedDoc.refCode}</div>
+                          <div className="text-[10px] text-slate-400">Đến: {linkedDoc.docNumber}</div>
+                        </>
+                      ) : <span className="text-slate-300 italic text-[10px]">Không có</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {linkedDoc ? (
+                        <>
+                          <div className="font-medium text-slate-600">{linkedDoc.docDate ? linkedDoc.docDate.split('-').reverse().join('/') : '-'}</div>
+                          <div className="text-[10px] text-slate-400">{linkedDoc.arrivalDate ? linkedDoc.arrivalDate.split('-').reverse().join('/') : '-'}</div>
+                        </>
+                      ) : <span className="text-slate-300 italic text-[10px]">-</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {linkedDoc ? (
+                        <>
+                          <div className="font-medium text-slate-700">{linkedDoc.senderUnit || '-'}</div>
+                          <div className="text-[10px] font-black text-indigo-500 uppercase">{linkedDoc.taxCode || '-'}</div>
+                        </>
+                      ) : <span className="text-slate-300 italic text-[10px]">-</span>}
+                    </td>
                     <td className="px-6 py-4 max-w-md overflow-hidden text-ellipsis whitespace-normal">
                       <p className="font-medium text-slate-600 leading-relaxed text-sm">{task.content}</p>
                     </td>
@@ -378,7 +416,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, isAdmin, curren
                 )
               }) : (
                 <tr>
-                   <td colSpan={isAD ? 6 : 5} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
+                   <td colSpan={isAD ? 9 : 8} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
                 </tr>
               )}
             </tbody>

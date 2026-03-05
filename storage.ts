@@ -46,7 +46,8 @@ export const cloudStorage = {
         forwarderIds: t.forwarderIds || [],
         unit: String(t.unit),
         attachments: t.attachments || [],
-        documentId: t.documentId ? String(t.documentId) : undefined
+        documentId: t.documentId ? String(t.documentId) : undefined,
+        outDocNumber: t.outDocNumber ? String(t.outDocNumber) : undefined
       })) as Task[];
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -97,7 +98,8 @@ export const cloudStorage = {
         forwarderIds: task.forwarderIds || [],
         unit: task.unit,
         attachments: task.attachments || [],
-        documentId: (task.documentId && task.documentId.trim() !== '') ? task.documentId : null
+        documentId: (task.documentId && task.documentId.trim() !== '') ? task.documentId : null,
+        outDocNumber: (task.outDocNumber && task.outDocNumber.trim() !== '') ? task.outDocNumber : null
       };
 
       const { error } = await supabase.from('tasks').insert(dbTask);
@@ -120,6 +122,9 @@ export const cloudStorage = {
       }
       if ('documentId' in dataToUpdate) {
         dataToUpdate.documentId = (dataToUpdate.documentId && dataToUpdate.documentId.trim() !== '') ? dataToUpdate.documentId : (null as any);
+      }
+      if ('outDocNumber' in dataToUpdate) {
+        dataToUpdate.outDocNumber = (dataToUpdate.outDocNumber && dataToUpdate.outDocNumber.trim() !== '') ? dataToUpdate.outDocNumber : (null as any);
       }
       
       const { error } = await supabase.from('tasks').update(dataToUpdate).eq('id', taskId);

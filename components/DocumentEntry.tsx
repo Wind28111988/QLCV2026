@@ -74,7 +74,7 @@ const SmartDateInput: React.FC<{
   );
 };
 
-const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = ({ onAdd }) => {
+const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean>, allDocuments: Document[] }> = ({ onAdd, allDocuments }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<Document>>({
     refCode: '', 
@@ -88,6 +88,29 @@ const DocumentEntry: React.FC<{ onAdd: (doc: Document) => Promise<boolean> }> = 
     deadline: '', 
     notes: ''
   });
+
+  // Calculate next document number
+  const nextDocNumber = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const docsThisYear = allDocuments.filter(d => {
+        const arrivalYear = d.arrivalDate ? new Date(d.arrivalDate).getFullYear() : 0;
+        return arrivalYear === currentYear;
+    });
+    
+    const maxNum = docsThisYear.reduce((max, d) => {
+        const num = parseInt(d.docNumber, 10);
+        return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    
+    return (maxNum + 1).toString();
+  }, [allDocuments]);
+
+  // Set initial docNumber
+  React.useEffect(() => {
+    if (!formData.docNumber) {
+        setFormData(prev => ({ ...prev, docNumber: nextDocNumber }));
+    }
+  }, [nextDocNumber]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

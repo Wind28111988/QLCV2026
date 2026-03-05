@@ -107,6 +107,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
         'Nhóm việc': doc.category,
         'Số ký hiệu': doc.refCode,
         'Số văn bản đến': doc.docNumber,
+        'Số văn bản đi': linkedTask?.outDocNumber || '-',
         'Ngày văn bản': formatDate(doc.docDate),
         'Ngày đến': formatDate(doc.arrivalDate),
         'Đơn vị gửi': doc.senderUnit,
@@ -179,7 +180,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
           <thead className="bg-slate-50 border-b border-slate-100 uppercase font-black text-slate-400 tracking-widest">
             <tr>
               <th className="px-6 py-4">Nhóm việc</th>
-              <th className="px-6 py-4">Ký hiệu/Số đến</th>
+              <th className="px-6 py-4">Ký hiệu/Số đến/Số đi</th>
               <th className="px-6 py-4">Ngày VB/Đến</th>
               <th className="px-6 py-4">Đơn vị/MST</th>
               <th className="px-6 py-4">Trích yếu</th>
@@ -201,6 +202,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-800">{doc.refCode}</div>
                     <div className="text-[10px] text-slate-400">Đến: {doc.docNumber}</div>
+                    <div className="text-[10px] text-indigo-500 font-bold">Đi: {linkedTask?.outDocNumber || '-'}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-600">{formatDate(doc.docDate)}</div>
