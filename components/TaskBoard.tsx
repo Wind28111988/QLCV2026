@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Task, TaskStatus, TaskComplexity, Attachment, User } from '../types';
+import { Task, TaskStatus, TaskComplexity, Attachment, User, Document as Doc } from '../types';
 import { Clock, CheckCircle2, PlayCircle, Plus, Edit2, Trash2, Search, X, Check, Paperclip, FileText, Image as ImageIcon, Eye, AlertTriangle, Calendar, Send, UserPlus } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
@@ -98,9 +98,9 @@ const ForwardModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task;
   );
 };
 
-interface TaskBoardProps { tasks: Task[]; onAddTask: any; onUpdateStatus: any; onUpdateTask: any; onDeleteTask: any; onForwardTask: any; currentUser: User; allUsers: User[]; }
+interface TaskBoardProps { tasks: Task[]; documents: Doc[]; onAddTask: any; onUpdateStatus: any; onUpdateTask: any; onDeleteTask: any; onForwardTask: any; currentUser: User; allUsers: User[]; }
 
-const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus, onUpdateTask, onDeleteTask, onForwardTask, currentUser, allUsers }) => {
+const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUpdateStatus, onUpdateTask, onDeleteTask, onForwardTask, currentUser, allUsers }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -174,10 +174,52 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onAddTask, onUpdateStatus,
             <div className="flex-1 p-2 space-y-3 overflow-y-auto">
               {filteredTasks.filter(t => t.status === status).map(task => {
                 const canForward = task.leadId === currentUser.id && task.status === TaskStatus.TO_DO;
+                const lead = allUsers.find(u => u.id === task.leadId);
+                const collaborators = allUsers.filter(u => task.collaboratorIds.includes(u.id));
+                const linkedDoc = task.documentId ? documents.find(d => d.id === task.documentId) : null;
+                
+                const leadName = lead?.name || 'N/A';
+                const collabNames = collaborators.map(c => c.name).join(', ');
+                const inChargeText = collabNames ? `${leadName}, ${collabNames}` : leadName;
+
                 return (
                   <div key={task.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative group overflow-hidden">
                     <div className="flex justify-between items-start mb-3"><span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${task.complexity === TaskComplexity.VERY_HARD ? 'bg-rose-50 text-rose-600' : task.complexity === TaskComplexity.HARD ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>{task.complexity}</span><div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => handleOpenEdit(task)} className="p-1.5 text-slate-400 hover:text-indigo-600"><Edit2 size={14} /></button><button onClick={() => onDeleteTask(task.id)} className="p-1.5 text-slate-400 hover:text-rose-600"><Trash2 size={14} /></button></div></div>
                     <p className="text-sm font-bold text-slate-800 mb-4 leading-relaxed">{task.content}</p>
+                    
+                    <div className="space-y-1.5 mb-4 text-[10px] text-slate-600">
+                      <div className="flex items-start gap-2">
+                        <span className="font-bold text-slate-400 min-w-[70px]">Phụ trách:</span>
+                        <span className="font-medium">{inChargeText}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-bold text-slate-400 min-w-[70px]">Nhóm việc:</span>
+                        <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded text-[9px] uppercase">{task.category}</span>
+                      </div>
+                      {task.outDocNumber && (
+                        <div className="flex items-start gap-2">
+                          <span className="font-bold text-slate-400 min-w-[70px]">Số VB đi:</span>
+                          <span className="font-medium text-indigo-600">{task.outDocNumber}</span>
+                        </div>
+                      )}
+                      {linkedDoc && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold text-slate-400 min-w-[70px]">KH/Số đến:</span>
+                            <span className="font-medium">{linkedDoc.refCode} / {linkedDoc.docNumber}</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold text-slate-400 min-w-[70px]">Ngày VB/Đến:</span>
+                            <span className="font-medium">{linkedDoc.docDate ? linkedDoc.docDate.split('-').reverse().join('/') : '-'} / {linkedDoc.arrivalDate ? linkedDoc.arrivalDate.split('-').reverse().join('/') : '-'}</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="font-bold text-slate-400 min-w-[70px]">Đơn vị/MST:</span>
+                            <span className="font-medium">{linkedDoc.senderUnit || '-'} / {linkedDoc.taxCode || '-'}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
                     <div className="space-y-1 text-[9px] font-bold text-slate-400 uppercase tracking-tighter"><div><Calendar size={10} className="inline mr-1" /> Hạn: {formatExplicit(task.deadline)}</div>{task.completedTime && <div className="text-emerald-500"><Check size={10} className="inline mr-1" /> Xong: {formatExplicit(task.completedTime)}</div>}</div>
                     {task.attachments && task.attachments.length > 0 && <div className="mt-3 flex flex-wrap gap-1"><Paperclip size={10} className="text-slate-300" /> <span className="text-[9px] font-bold text-slate-400 italic">{task.attachments.length} tệp đính kèm</span></div>}
                     <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">

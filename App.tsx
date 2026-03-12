@@ -252,7 +252,7 @@ const App: React.FC = () => {
 
         <div className="w-full">
           {activeTab === 'dashboard' && <Dashboard users={users} tasks={tasks} currentUser={currentUser} onUserClick={(uid) => { setViewedUserId(uid); setActiveTab('search'); }} />}
-          {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} onForwardTask={handleForwardTask} currentUser={currentUser} allUsers={users} />}
+          {activeTab === 'tasks' && <TaskBoard tasks={myRecentTasks} documents={documents} onAddTask={addTask} onUpdateStatus={updateTaskStatus} onUpdateTask={updateTask} onDeleteTask={deleteTask} onForwardTask={handleForwardTask} currentUser={currentUser} allUsers={users} />}
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} documents={documents} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} tasks={tasks} onAssign={addTask} />}
           {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} allDocuments={documents} />}
