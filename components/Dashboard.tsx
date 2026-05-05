@@ -85,6 +85,13 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   const [endDate, setEndDate] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
+
+  const [appliedFilters, setAppliedFilters] = useState({
+    startDate: '',
+    endDate: '',
+    selectedUnit: '',
+    selectedStaffId: ''
+  });
   const [detailModal, setDetailModal] = useState<{ isOpen: boolean; title: string; tasks: Task[] }>({
     isOpen: false,
     title: '',
@@ -140,14 +147,14 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
 
       if (!hasAccess) return false;
 
-      const matchesUnit = isAD1 && selectedUnit ? t.unit === selectedUnit : true;
-      const matchesStaff = selectedStaffId 
-        ? (t.userId === selectedStaffId || t.leadId === selectedStaffId || t.collaboratorIds.includes(selectedStaffId)) 
+      const matchesUnit = isAD1 && appliedFilters.selectedUnit ? t.unit === appliedFilters.selectedUnit : true;
+      const matchesStaff = appliedFilters.selectedStaffId 
+        ? (t.userId === appliedFilters.selectedStaffId || t.leadId === appliedFilters.selectedStaffId || t.collaboratorIds.includes(appliedFilters.selectedStaffId)) 
         : true;
       
       const taskTime = t.startTime;
-      const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
-      const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
+      const matchesStart = appliedFilters.startDate ? taskTime >= new Date(appliedFilters.startDate).getTime() : true;
+      const matchesEnd = appliedFilters.endDate ? taskTime <= new Date(appliedFilters.endDate).getTime() + 86400000 : true;
 
       return matchesUnit && matchesStaff && matchesStart && matchesEnd;
     });
@@ -186,7 +193,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       complexityChartData,
       performanceData
     };
-  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, startDate, endDate, selectedUnit, selectedStaffId, accessibleUsers]);
+  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, appliedFilters, accessibleUsers]);
 
   const COLORS = ['#6366f1', '#f59e0b', '#ef4444'];
 
@@ -229,12 +236,25 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
           <SmartDateInput label="Đến ngày" value={endDate} onChange={setEndDate} />
         </div>
 
-        <button 
-          onClick={() => { setStartDate(''); setEndDate(''); setSelectedStaffId(''); setSelectedUnit(''); }}
-          className="w-full sm:w-auto bg-slate-50 text-slate-500 px-6 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-xs font-black uppercase tracking-widest border border-slate-200"
-        >
-          Xóa
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button 
+            onClick={() => {
+              setAppliedFilters({ startDate, endDate, selectedUnit, selectedStaffId });
+            }}
+            className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors text-xs font-black uppercase tracking-widest shadow-md"
+          >
+            Lọc
+          </button>
+          <button 
+            onClick={() => { 
+              setStartDate(''); setEndDate(''); setSelectedStaffId(''); setSelectedUnit(''); 
+              setAppliedFilters({ startDate: '', endDate: '', selectedUnit: '', selectedStaffId: '' });
+            }}
+            className="w-full sm:w-auto bg-slate-50 text-slate-500 px-6 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-xs font-black uppercase tracking-widest border border-slate-200"
+          >
+            Xóa
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">

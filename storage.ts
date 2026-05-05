@@ -47,7 +47,8 @@ export const cloudStorage = {
         unit: String(t.unit),
         attachments: t.attachments || [],
         documentId: t.documentId ? String(t.documentId) : undefined,
-        outDocNumber: t.outDocNumber ? String(t.outDocNumber) : undefined
+        outDocNumber: t.outDocNumber ? String(t.outDocNumber) : undefined,
+        completedBy: t.completedBy || []
       })) as Task[];
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -99,7 +100,8 @@ export const cloudStorage = {
         unit: task.unit,
         attachments: task.attachments || [],
         documentId: (task.documentId && task.documentId.trim() !== '') ? task.documentId : null,
-        outDocNumber: (task.outDocNumber && task.outDocNumber.trim() !== '') ? task.outDocNumber : null
+        outDocNumber: (task.outDocNumber && task.outDocNumber.trim() !== '') ? task.outDocNumber : null,
+        completedBy: task.completedBy || []
       };
 
       const { error } = await supabase.from('tasks').insert(dbTask);

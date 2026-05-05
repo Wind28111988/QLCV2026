@@ -179,10 +179,19 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
     const exportData = filteredTasks.map(t => {
       const creator = users.find(u => u.id === t.userId);
       const lead = users.find(u => u.id === t.leadId);
+      const collaborators = users.filter(u => t.collaboratorIds.includes(u.id));
+      const forwarders = users.filter(u => t.forwarderIds?.includes(u.id));
       const linkedDoc = t.documentId ? documents.find(d => d.id === t.documentId) : null;
+      
+      const ngChutri = forwarders.length > 0 ? forwarders.map(f => f.name).join(', ') : (lead?.name || 'N/A');
+      const allDoers = forwarders.length > 0 
+        ? [lead?.name, ...collaborators.map(c => c.name)].filter(Boolean).join(', ') 
+        : collaborators.map(c => c.name).join(', ');
+
       return {
         'Người giao': creator?.name || 'N/A',
-        'Người chủ trì': lead?.name || 'N/A',
+        'Người chủ trì': ngChutri,
+        'Người làm': allDoers || 'N/A',
         'Đơn vị': t.unit,
         'Nhóm công việc': t.category,
         'Số văn bản đi': t.outDocNumber || '-',
