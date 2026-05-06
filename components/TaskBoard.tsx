@@ -223,29 +223,10 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
                     <div className="space-y-1 text-[9px] font-bold text-slate-400 uppercase tracking-tighter"><div><Calendar size={10} className="inline mr-1" /> Hạn: {formatExplicit(task.deadline)}</div>{task.completedTime && <div className="text-emerald-500"><Check size={10} className="inline mr-1" /> Xong: {formatExplicit(task.completedTime)}</div>}</div>
                     {task.attachments && task.attachments.length > 0 && <div className="mt-3 flex flex-wrap gap-1"><Paperclip size={10} className="text-slate-300" /> <span className="text-[9px] font-bold text-slate-400 italic">{task.attachments.length} tệp đính kèm</span></div>}
                     <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
-                      <div className="flex -space-x-2"><img src={`https://picsum.photos/seed/${task.userId}/100`} className="w-6 h-6 rounded-full border-2 border-white" title="Người giao" alt="assigner" /><img src={`https://picsum.photos/seed/${task.leadId}/100`} className="w-6 h-6 rounded-full border-2 border-white" title="Chủ trì" alt="lead" /></div>
+                      <div className="flex -space-x-2"><img src={`https://picsum.photos/seed/${task.userId}/100`} className="w-6 h-6 rounded-full border-2 border-white" alt="assigner" /><img src={`https://picsum.photos/seed/${task.leadId}/100`} className="w-6 h-6 rounded-full border-2 border-white" alt="lead" /></div>
                       <div className="flex items-center space-x-1">
                         {canForward && <button onClick={() => setForwardModal({ isOpen: true, task })} className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[8px] font-black uppercase hover:bg-amber-600 hover:text-white"><Send size={10} className="inline mr-1" /> Giao</button>}
-                        
-                        {status === TaskStatus.TO_DO && (task.leadId === currentUser.id || task.collaboratorIds.includes(currentUser.id)) && (
-                          <button onClick={() => onUpdateStatus(task.id, TaskStatus.IN_PROGRESS)} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase">Bắt đầu</button>
-                        )}
-                        
-                        {status === TaskStatus.IN_PROGRESS && (
-                          <>
-                            {task.collaboratorIds.includes(currentUser.id) && task.leadId !== currentUser.id && (
-                              task.completedBy?.includes(currentUser.id) 
-                                ? <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase">Đã b/c xong</span>
-                                : <button onClick={() => onUpdateTask(task.id, { completedBy: [...(task.completedBy || []), currentUser.id] })} className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black uppercase">Báo cáo xong</button>
-                            )}
-                            
-                            {task.leadId === currentUser.id && (
-                              task.collaboratorIds.every(id => task.completedBy?.includes(id))
-                                ? <button onClick={() => onUpdateStatus(task.id, TaskStatus.COMPLETED)} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase">Hoàn thành</button>
-                                : <button title="Chờ người phối hợp hoàn thành" className="px-3 py-1 bg-slate-100 text-slate-400 rounded-lg text-[9px] font-black uppercase cursor-not-allowed">Hoàn thành</button>
-                            )}
-                          </>
-                        )}
+                        {status !== TaskStatus.COMPLETED && <button onClick={() => onUpdateStatus(task.id, status === TaskStatus.TO_DO ? TaskStatus.IN_PROGRESS : TaskStatus.COMPLETED)} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase">{status === TaskStatus.TO_DO ? 'Bắt đầu' : 'Hoàn thành'}</button>}
                       </div>
                     </div>
                   </div>
