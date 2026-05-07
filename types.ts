@@ -79,6 +79,7 @@ export interface Task {
   attachments?: Attachment[];
   documentId?: string; // Liên kết tới văn bản gốc
   outDocNumber?: string; // Số văn bản đi
+  completedBy?: string[]; // IDs of users who marked this task as complete
 }
 
 export interface DashboardStats {

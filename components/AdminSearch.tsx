@@ -180,9 +180,17 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
       const creator = users.find(u => u.id === t.userId);
       const lead = users.find(u => u.id === t.leadId);
       const linkedDoc = t.documentId ? documents.find(d => d.id === t.documentId) : null;
+      
+      const forwarders = users.filter(u => t.forwarderIds?.includes(u.id));
+      const collaborators = users.filter(u => t.collaboratorIds.includes(u.id));
+
+      const chuTriText = forwarders.length > 0 ? forwarders.map(f => f.name).join(', ') : (lead?.name || 'N/A');
+      const nguoiLamText = [lead?.name, ...collaborators.map(c => c.name)].filter(Boolean).join(', ') || 'N/A';
+
       return {
         'Người giao': creator?.name || 'N/A',
-        'Người chủ trì': lead?.name || 'N/A',
+        'Người chủ trì': chuTriText,
+        'Người làm': nguoiLamText,
         'Đơn vị': t.unit,
         'Nhóm công việc': t.category,
         'Số văn bản đi': t.outDocNumber || '-',

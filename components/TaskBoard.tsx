@@ -226,7 +226,36 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
                       <div className="flex -space-x-2"><img src={`https://picsum.photos/seed/${task.userId}/100`} className="w-6 h-6 rounded-full border-2 border-white" alt="assigner" /><img src={`https://picsum.photos/seed/${task.leadId}/100`} className="w-6 h-6 rounded-full border-2 border-white" alt="lead" /></div>
                       <div className="flex items-center space-x-1">
                         {canForward && <button onClick={() => setForwardModal({ isOpen: true, task })} className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[8px] font-black uppercase hover:bg-amber-600 hover:text-white"><Send size={10} className="inline mr-1" /> Giao</button>}
-                        {status !== TaskStatus.COMPLETED && <button onClick={() => onUpdateStatus(task.id, status === TaskStatus.TO_DO ? TaskStatus.IN_PROGRESS : TaskStatus.COMPLETED)} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase">{status === TaskStatus.TO_DO ? 'Bắt đầu' : 'Hoàn thành'}</button>}
+                        
+                        {status !== TaskStatus.COMPLETED && status === TaskStatus.TO_DO && (
+                           <button onClick={() => onUpdateStatus(task.id, TaskStatus.IN_PROGRESS)} className="px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-colors rounded-lg text-[9px] font-black uppercase">Bắt đầu</button>
+                        )}
+                        
+                        {status === TaskStatus.IN_PROGRESS && (
+                          <>
+                            {task.collaboratorIds.includes(currentUser.id) && task.leadId !== currentUser.id && (
+                              <button 
+                                onClick={() => onUpdateTask(task.id, { completedBy: Array.from(new Set([...(task.completedBy || []), currentUser.id])) })} 
+                                disabled={task.completedBy?.includes(currentUser.id)}
+                                className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-colors ${task.completedBy?.includes(currentUser.id) ? 'bg-emerald-50 text-emerald-600 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
+                              >
+                                {task.completedBy?.includes(currentUser.id) ? 'Đã báo xong' : 'Báo xong'}
+                              </button>
+                            )}
+                            {task.leadId === currentUser.id && (() => {
+                              const collabsDone = task.collaboratorIds.length === 0 || task.collaboratorIds.every(id => task.completedBy?.includes(id));
+                              return (
+                                <button 
+                                  onClick={() => collabsDone && onUpdateStatus(task.id, TaskStatus.COMPLETED)} 
+                                  title={!collabsDone ? "Chờ người phối hợp báo xong" : ""}
+                                  className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-colors ${!collabsDone ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
+                                >
+                                  Hoàn thành
+                                </button>
+                              );
+                            })()}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

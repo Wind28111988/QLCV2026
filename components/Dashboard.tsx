@@ -85,6 +85,14 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   const [endDate, setEndDate] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
+  
+  const [appliedFilters, setAppliedFilters] = useState({
+    startDate: '',
+    endDate: '',
+    unit: '',
+    staffId: ''
+  });
+
   const [detailModal, setDetailModal] = useState<{ isOpen: boolean; title: string; tasks: Task[] }>({
     isOpen: false,
     title: '',
@@ -99,13 +107,13 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
   
   const accessibleUsers = useMemo(() => {
     if (isAD1) {
-      return selectedUnit ? users.filter(u => u.unit === selectedUnit) : users;
+      return appliedFilters.unit ? users.filter(u => u.unit === appliedFilters.unit) : users;
     }
     if (isAD2) {
       return users.filter(u => u.unit === currentUser.unit);
     }
     return [currentUser];
-  }, [users, currentUser, isAD1, isAD2, selectedUnit]);
+  }, [users, currentUser, isAD1, isAD2, appliedFilters.unit]);
 
   const getPoints = (task: Task) => {
     if (task.status === TaskStatus.COMPLETED && task.deadline && task.completedTime && task.completedTime > task.deadline) {
@@ -140,14 +148,14 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
 
       if (!hasAccess) return false;
 
-      const matchesUnit = isAD1 && selectedUnit ? t.unit === selectedUnit : true;
-      const matchesStaff = selectedStaffId 
-        ? (t.userId === selectedStaffId || t.leadId === selectedStaffId || t.collaboratorIds.includes(selectedStaffId)) 
+      const matchesUnit = isAD1 && appliedFilters.unit ? t.unit === appliedFilters.unit : true;
+      const matchesStaff = appliedFilters.staffId 
+        ? (t.userId === appliedFilters.staffId || t.leadId === appliedFilters.staffId || t.collaboratorIds.includes(appliedFilters.staffId)) 
         : true;
       
       const taskTime = t.startTime;
-      const matchesStart = startDate ? taskTime >= new Date(startDate).getTime() : true;
-      const matchesEnd = endDate ? taskTime <= new Date(endDate).getTime() + 86400000 : true;
+      const matchesStart = appliedFilters.startDate ? taskTime >= new Date(appliedFilters.startDate).getTime() : true;
+      const matchesEnd = appliedFilters.endDate ? taskTime <= new Date(appliedFilters.endDate).getTime() + 86400000 : true;
 
       return matchesUnit && matchesStaff && matchesStart && matchesEnd;
     });
@@ -186,7 +194,7 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
       complexityChartData,
       performanceData
     };
-  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, startDate, endDate, selectedUnit, selectedStaffId, accessibleUsers]);
+  }, [tasks, users, currentUser, isAD1, isAD2, isRegularUser, appliedFilters, accessibleUsers]);
 
   const COLORS = ['#6366f1', '#f59e0b', '#ef4444'];
 
@@ -229,12 +237,23 @@ const Dashboard: React.FC<DashboardProps> = ({ users, tasks, currentUser, onUser
           <SmartDateInput label="Đến ngày" value={endDate} onChange={setEndDate} />
         </div>
 
-        <button 
-          onClick={() => { setStartDate(''); setEndDate(''); setSelectedStaffId(''); setSelectedUnit(''); }}
-          className="w-full sm:w-auto bg-slate-50 text-slate-500 px-6 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-xs font-black uppercase tracking-widest border border-slate-200"
-        >
-          Xóa
-        </button>
+        <div className="flex gap-3 w-full sm:w-auto mt-4 lg:mt-0 lg:ml-auto">
+          <button 
+            onClick={() => setAppliedFilters({ startDate, endDate, unit: selectedUnit, staffId: selectedStaffId })}
+            className="flex-1 sm:flex-none bg-indigo-600 text-white px-8 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors text-xs font-black uppercase tracking-widest"
+          >
+            Lọc
+          </button>
+          <button 
+            onClick={() => { 
+              setStartDate(''); setEndDate(''); setSelectedStaffId(''); setSelectedUnit(''); 
+              setAppliedFilters({ startDate: '', endDate: '', unit: '', staffId: '' }); 
+            }}
+            className="flex-1 sm:flex-none bg-slate-50 text-slate-500 px-6 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-xs font-black uppercase tracking-widest border border-slate-200"
+          >
+            Xóa
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
