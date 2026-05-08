@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { User, Task, TaskStatus, TaskComplexity, TaskCategory, Document as Doc } from '../types';
-import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Search, FileSpreadsheet, Filter, Calendar, Clock, Timer, CheckCircle, KeyRound, ShieldAlert, AlertTriangle, RotateCcw, Edit2, X } from 'lucide-react';
 import { DEFAULT_PASSWORD } from '../constants';
 import SearchableSelect from './SearchableSelect';
 
@@ -109,7 +109,35 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
 
   const isFullAccess = currentUser.notes === 'AD1' || currentUser.notes === 'VT';
   const isAD = currentUser.notes === 'AD1' || currentUser.notes === 'AD2';
-  
+  const isManager = currentUser.delegateLevel === 'X1' || currentUser.position?.toLowerCase().includes('trưởng phòng') || isFullAccess;
+
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTaskData, setEditTaskData] = useState<Partial<Task>>({});
+
+  const handleEditClick = (task: Task) => {
+    setEditingTask(task);
+    setEditTaskData({
+      content: task.content,
+      leadId: task.leadId,
+      collaboratorIds: task.collaboratorIds || [],
+      deadline: task.deadline,
+      complexity: task.complexity,
+      category: task.category,
+      outDocNumber: task.outDocNumber
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingTask) {
+      if (!editTaskData.content) {
+        alert('Vui lòng nhập nội dung công việc!');
+        return;
+      }
+      onUpdateTask(editingTask.id, editTaskData);
+      setEditingTask(null);
+    }
+  };
+
   const units = useMemo(() => Array.from(new Set(users.map(u => u.unit))), [users]);
   
   const unitEmployees = useMemo(() => {
@@ -322,7 +350,8 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nội dung</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
                 <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hạn chót</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>
+                {isAD && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>}
+                {isManager && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Sửa</th>}
               </tr>
             </thead>
             <tbody>
@@ -420,17 +449,124 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                         </button>
                       </td>
                     )}
+                    {isManager && (
+                      <td className="px-6 py-4 text-center">
+                        {task.status !== TaskStatus.COMPLETED && (
+                          <button 
+                            onClick={() => handleEditClick(task)}
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 )
               }) : (
                 <tr>
-                   <td colSpan={isAD ? 9 : 8} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
+                   <td colSpan={isManager ? (isAD ? 11 : 10) : (isAD ? 10 : 9)} className="px-6 py-12 text-center text-slate-300 font-bold uppercase tracking-widest italic text-sm">Không tìm thấy kết quả</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {editingTask && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl relative overflow-hidden animate-in zoom-in">
+            <button onClick={() => setEditingTask(null)} className="absolute top-6 right-6 p-2 bg-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"><X size={20} /></button>
+            <div className="p-8 bg-indigo-600 text-white flex items-center space-x-3">
+              <Edit2 size={28} />
+              <h2 className="text-2xl font-black uppercase tracking-tight">Sửa thông tin giao việc</h2>
+            </div>
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Người chủ trì</label>
+                <SearchableSelect 
+                  label="Chọn người chủ trì"
+                  options={unitEmployees.map(u => ({ id: u.id, label: u.name, subLabel: u.position }))}
+                  value={editTaskData.leadId || ''}
+                  onChange={v => setEditTaskData({...editTaskData, leadId: v})}
+                  placeholder="Người chủ trì..."
+                />
+              </div>
+              <div className="row-span-1 md:row-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Người phối hợp</label>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl max-h-[140px] overflow-y-auto p-2">
+                  {unitEmployees.filter(u => u.id !== editTaskData.leadId).map(u => (
+                    <label key={u.id} className="flex items-center space-x-3 p-2 hover:bg-white rounded-lg cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                        checked={(editTaskData.collaboratorIds || []).includes(u.id)}
+                        onChange={(e) => {
+                          const curr = editTaskData.collaboratorIds || [];
+                          if (e.target.checked) setEditTaskData({...editTaskData, collaboratorIds: [...curr, u.id]});
+                          else setEditTaskData({...editTaskData, collaboratorIds: curr.filter(id => id !== u.id)});
+                        }}
+                      />
+                      <span className="text-sm font-medium text-slate-700">{u.name} <span className="text-slate-400 text-xs text-right">({u.position})</span></span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Nhóm việc</label>
+                <select 
+                  value={editTaskData.category || ''} 
+                  onChange={e => setEditTaskData({...editTaskData, category: e.target.value as TaskCategory})} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                >
+                  {Object.values(TaskCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số văn bản đi (nếu có)</label>
+                <input 
+                  type="text" 
+                  value={editTaskData.outDocNumber || ''} 
+                  onChange={e => setEditTaskData({...editTaskData, outDocNumber: e.target.value})} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium" 
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Mức độ</label>
+                <select 
+                  value={editTaskData.complexity || ''} 
+                  onChange={e => setEditTaskData({...editTaskData, complexity: e.target.value as TaskComplexity})} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                >
+                  {Object.values(TaskComplexity).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Nội dung công việc *</label>
+                <textarea 
+                  value={editTaskData.content || ''} 
+                  onChange={e => setEditTaskData({...editTaskData, content: e.target.value})} 
+                  rows={3} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium resize-none"
+                ></textarea>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Hạn hoàn thành</label>
+                <input 
+                  type="datetime-local" 
+                  value={editTaskData.deadline ? new Date(editTaskData.deadline - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''} 
+                  onChange={e => setEditTaskData({...editTaskData, deadline: e.target.value ? new Date(e.target.value).getTime() : undefined})} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium" 
+                />
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setEditingTask(null)} className="px-6 py-3 text-slate-500 font-black uppercase text-xs tracking-widest hover:bg-slate-200 rounded-xl transition-colors">Hủy</button>
+              <button onClick={handleSaveEdit} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

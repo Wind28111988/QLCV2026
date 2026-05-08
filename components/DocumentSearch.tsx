@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Document, Task, User, TaskStatus, TaskCategory } from '../types';
-import { Search, FileText, User as UserIcon, CheckCircle, Clock, AlertCircle, Calendar, Filter, FileSpreadsheet } from 'lucide-react';
+import { Search, FileText, User as UserIcon, CheckCircle, Clock, AlertCircle, Calendar, Filter, FileSpreadsheet, Edit2, X } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 declare const XLSX: any;
@@ -53,13 +53,43 @@ const SmartDateInput: React.FC<{
   );
 };
 
-const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: User[] }> = ({ documents, tasks, users }) => {
+const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: User[], onUpdateDocument?: (id: string, updates: Partial<Document>) => void, currentUser?: User }> = ({ documents, tasks, users, onUpdateDocument, currentUser }) => {
   const [keyword, setKeyword] = useState('');
   const [staffId, setStaffId] = useState('all');
   const [status, setStatus] = useState('all');
   const [category, setCategory] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Document>>({});
+
+  const handleEditClick = (doc: Document) => {
+    setEditingDoc(doc);
+    setEditFormData({
+      refCode: doc.refCode,
+      docNumber: doc.docNumber,
+      docDate: doc.docDate,
+      arrivalDate: doc.arrivalDate,
+      senderUnit: doc.senderUnit,
+      taxCode: doc.taxCode,
+      summary: doc.summary,
+      category: doc.category,
+      deadline: doc.deadline,
+      notes: doc.notes
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingDoc && onUpdateDocument) {
+      if (!editFormData.summary) {
+        alert('Vui lòng nhập trích yếu văn bản!');
+        return;
+      }
+      onUpdateDocument(editingDoc.id, editFormData);
+      setEditingDoc(null);
+    }
+  };
 
   const staffOptions = useMemo(() => {
     const opts = users.map(u => ({ id: u.id, label: u.name, subLabel: u.position }));
@@ -187,6 +217,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
               <th className="px-6 py-4">Cán bộ xử lý</th>
               <th className="px-6 py-4">Trạng thái</th>
               <th className="px-6 py-4">Hạn/Ghi chú</th>
+              {currentUser?.notes?.includes('VT') && <th className="px-6 py-4 text-center">Sửa</th>}
             </tr>
           </thead>
           <tbody>
@@ -237,16 +268,76 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
                     <div className="font-mono font-bold text-rose-500">{formatDate(doc.deadline)}</div>
                     <div className="text-[10px] text-slate-400 italic max-w-[150px] truncate">{doc.notes || '-'}</div>
                   </td>
+                  {currentUser?.notes?.includes('VT') && (
+                    <td className="px-6 py-4 text-center">
+                      {linkedTask?.status !== TaskStatus.COMPLETED && (
+                        <button onClick={() => handleEditClick(doc)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+                          <Edit2 size={16} />
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             }) : (
                 <tr>
-                    <td colSpan={8} className="px-6 py-20 text-center text-slate-300 italic uppercase font-black tracking-widest">Không tìm thấy văn bản phù hợp</td>
+                    <td colSpan={currentUser?.notes?.includes('VT') ? 9 : 8} className="px-6 py-20 text-center text-slate-300 italic uppercase font-black tracking-widest">Không tìm thấy văn bản phù hợp</td>
                 </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {editingDoc && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl relative overflow-hidden animate-in zoom-in">
+            <button onClick={() => setEditingDoc(null)} className="absolute top-6 right-6 p-2 bg-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"><X size={20} /></button>
+            <div className="p-8 bg-indigo-600 text-white flex items-center space-x-3">
+              <Edit2 size={28} />
+              <h2 className="text-2xl font-black uppercase tracking-tight">Sửa văn bản</h2>
+            </div>
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số ký hiệu</label>
+                <input type="text" value={editFormData.refCode || ''} onChange={e => setEditFormData({...editFormData, refCode: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Số văn bản đến</label>
+                <input type="text" value={editFormData.docNumber || ''} onChange={e => setEditFormData({...editFormData, docNumber: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+              </div>
+              <SmartDateInput label="Ngày văn bản" value={editFormData.docDate || ''} onChange={v => setEditFormData({...editFormData, docDate: v})} />
+              <SmartDateInput label="Ngày đến" value={editFormData.arrivalDate || ''} onChange={v => setEditFormData({...editFormData, arrivalDate: v})} />
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Đơn vị gửi</label>
+                <input type="text" value={editFormData.senderUnit || ''} onChange={e => setEditFormData({...editFormData, senderUnit: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Mã số thuế</label>
+                <input type="text" value={editFormData.taxCode || ''} onChange={e => setEditFormData({...editFormData, taxCode: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Trích yếu *</label>
+                <textarea value={editFormData.summary || ''} onChange={e => setEditFormData({...editFormData, summary: e.target.value})} rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium resize-none"></textarea>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Nhóm công việc</label>
+                <select value={editFormData.category || TaskCategory.KHAC} onChange={e => setEditFormData({...editFormData, category: e.target.value as TaskCategory})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                  {Object.values(TaskCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <SmartDateInput label="Hạn xử lý (nếu có)" value={editFormData.deadline || ''} onChange={v => setEditFormData({...editFormData, deadline: v})} />
+              <div className="md:col-span-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 tracking-widest">Ghi chú</label>
+                <textarea value={editFormData.notes || ''} onChange={e => setEditFormData({...editFormData, notes: e.target.value})} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-medium resize-none"></textarea>
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setEditingDoc(null)} className="px-6 py-3 text-slate-500 font-black uppercase text-xs tracking-widest hover:bg-slate-200 rounded-xl transition-colors">Hủy</button>
+              <button onClick={handleSaveEdit} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

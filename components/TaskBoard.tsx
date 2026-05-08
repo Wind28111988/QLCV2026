@@ -110,7 +110,14 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
   const [outDocNumber, setOutDocNumber] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [forwardModal, setForwardModal] = useState<{ isOpen: boolean, task: Task | null }>({ isOpen: false, task: null });
+  const [reportingTasks, setReportingTasks] = useState<Set<string>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const nextOutDocNumber = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -155,6 +162,23 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
     if (editingTask) onUpdateTask(editingTask.id, { content, complexity, deadline: deadlineTs, attachments, outDocNumber });
     else onAddTask(content, complexity, undefined, [], attachments, deadlineTs, undefined, undefined, undefined, outDocNumber);
     setIsModalOpen(false); setEditingTask(null); setContent(''); setComplexity(TaskComplexity.MEDIUM); setDeadline(''); setOutDocNumber(''); setAttachments([]);
+  };
+
+  const handleReportDone = async (task: Task) => {
+    setReportingTasks(prev => new Set(prev).add(task.id));
+    try {
+      await onUpdateTask(task.id, { completedBy: Array.from(new Set([...(task.completedBy || []), currentUser.id])) });
+      showToast("Đã gửi báo cáo tiến độ công việc thành công!");
+    } catch (e) {
+      console.error(e);
+      showToast("Cập nhật lỗi. Vui lòng thử lại.");
+    } finally {
+      setReportingTasks(prev => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    }
   };
 
   return (
@@ -234,13 +258,19 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
                         {status === TaskStatus.IN_PROGRESS && (
                           <>
                             {task.collaboratorIds.includes(currentUser.id) && task.leadId !== currentUser.id && (
-                              <button 
-                                onClick={() => onUpdateTask(task.id, { completedBy: Array.from(new Set([...(task.completedBy || []), currentUser.id])) })} 
-                                disabled={task.completedBy?.includes(currentUser.id)}
-                                className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-colors ${task.completedBy?.includes(currentUser.id) ? 'bg-emerald-50 text-emerald-600 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
-                              >
-                                {task.completedBy?.includes(currentUser.id) ? 'Đã báo xong' : 'Báo xong'}
-                              </button>
+                              task.completedBy?.includes(currentUser.id) ? (
+                                <div className="px-2 py-1 flex items-center justify-center" title="Đã báo xong">
+                                  <Check size={16} className="text-emerald-500 font-bold" />
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => handleReportDone(task)} 
+                                  disabled={reportingTasks.has(task.id)}
+                                  className={`px-3 py-1 flex items-center justify-center rounded-lg text-[9px] font-black uppercase transition-colors ${reportingTasks.has(task.id) ? 'bg-indigo-50 text-indigo-400 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
+                                >
+                                  {reportingTasks.has(task.id) ? 'Đang gửi...' : 'Báo xong'}
+                                </button>
+                              )
                             )}
                             {task.leadId === currentUser.id && (() => {
                               const collabsDone = task.collaboratorIds.length === 0 || task.collaboratorIds.every(id => task.completedBy?.includes(id));
@@ -293,6 +323,12 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
         </div>
       )}
       {forwardModal.isOpen && forwardModal.task && <ForwardModal isOpen={forwardModal.isOpen} onClose={() => setForwardModal({ isOpen: false, task: null })} task={forwardModal.task} currentUser={currentUser} allUsers={allUsers} onForward={onForwardTask} />}
+      
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 z-[200] bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20 animate-in slide-in-from-bottom-5">
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 };

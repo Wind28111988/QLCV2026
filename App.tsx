@@ -110,6 +110,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateDocument = async (docId: string, updates: Partial<Doc>) => {
+    setIsSyncing(true);
+    const result = await cloudStorage.updateDocument(docId, updates);
+    if (result.success) {
+      setDocuments(prev => prev.map(d => d.id === docId ? { ...d, ...updates } : d));
+    }
+    setIsSyncing(false);
+  };
+
   const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory, outDocNumber?: string) => {
     if (!currentUser) return;
     
@@ -181,7 +190,12 @@ const App: React.FC = () => {
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     setIsSyncing(true);
     const result = await cloudStorage.updateTask(taskId, updates);
-    if (result.success) setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+    if (result.success) {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+    } else {
+      setIsSyncing(false);
+      throw new Error(result.error?.message || "Lỗi cập nhật CSDL");
+    }
     setIsSyncing(false);
   };
 
@@ -256,7 +270,7 @@ const App: React.FC = () => {
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} documents={documents} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} tasks={tasks} onAssign={addTask} />}
           {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} allDocuments={documents} />}
-          {activeTab === 'doc-search' && (isVT || isX1) && <DocumentSearch documents={documents} tasks={tasks} users={users} />}
+          {activeTab === 'doc-search' && (isVT || isX1) && <DocumentSearch documents={documents} tasks={tasks} users={users} onUpdateDocument={handleUpdateDocument} currentUser={currentUser} />}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}
         </div>
       </main>
