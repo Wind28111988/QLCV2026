@@ -220,6 +220,17 @@ export const cloudStorage = {
     }
   },
 
+  async deleteDocument(docId: string): Promise<{ success: boolean; error?: any }> {
+    try {
+      const { error } = await supabase.from('documents').delete().eq('id', docId);
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      return { success: false, error };
+    }
+  },
+
   async upsertUser(user: User): Promise<{ success: boolean; error?: any }> {
     try {
       const { error } = await supabase.from('users').upsert(user);

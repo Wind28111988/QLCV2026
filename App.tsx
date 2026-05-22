@@ -119,6 +119,28 @@ const App: React.FC = () => {
     setIsSyncing(false);
   };
 
+  const handleDeleteDocument = async (docId: string) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa văn bản này và các công việc liên quan?')) {
+      setIsSyncing(true);
+      try {
+        // Delete document from storage
+        const result = await cloudStorage.deleteDocument(docId);
+        if (result.success) {
+          setDocuments(prev => prev.filter(d => d.id !== docId));
+          // Also clear any tasks associated with this documentId
+          // The database might have a cascade delete, but we update state anyway
+          setTasks(prev => prev.filter(t => t.documentId !== docId));
+        } else {
+          alert('Lỗi khi xóa văn bản: ' + (result.error?.message || 'Không rõ nguyên nhân'));
+        }
+      } catch (err) {
+        console.error("Delete Error:", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+  };
+
   const addTask = async (content: string, complexity: TaskComplexity, leadId?: string, collaboratorIds?: string[], attachments?: Attachment[], deadline?: number, documentId?: string, targetUnit?: string, category?: TaskCategory, outDocNumber?: string) => {
     if (!currentUser) return;
     
@@ -270,7 +292,7 @@ const App: React.FC = () => {
           {activeTab === 'search' && <AdminSearch users={users} tasks={tasks} documents={documents} isAdmin={isAdmin} currentUser={currentUser} onUpdateTask={updateTask} onResetUserPassword={handleResetPassword} initialSelectedUserId={viewedUserId} />}
           {activeTab === 'delegate' && <Delegation currentUser={currentUser} users={users} documents={documents} tasks={tasks} onAssign={addTask} />}
           {activeTab === 'doc-entry' && isVT && <DocumentEntry onAdd={handleAddDocument} allDocuments={documents} />}
-          {activeTab === 'doc-search' && (isVT || isX1) && <DocumentSearch documents={documents} tasks={tasks} users={users} onUpdateDocument={handleUpdateDocument} currentUser={currentUser} />}
+          {activeTab === 'doc-search' && (isVT || isX1) && <DocumentSearch documents={documents} tasks={tasks} users={users} onUpdateDocument={handleUpdateDocument} onDeleteDocument={handleDeleteDocument} currentUser={currentUser} />}
           {activeTab === 'profile' && <UserProfile user={currentUser} />}
         </div>
       </main>

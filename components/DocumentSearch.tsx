@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Document, Task, User, TaskStatus, TaskCategory } from '../types';
-import { Search, FileText, User as UserIcon, CheckCircle, Clock, AlertCircle, Calendar, Filter, FileSpreadsheet, Edit2, X } from 'lucide-react';
+import { Search, FileText, User as UserIcon, CheckCircle, Clock, AlertCircle, Calendar, Filter, FileSpreadsheet, Edit2, X, Trash2 } from 'lucide-react';
 import SearchableSelect from './SearchableSelect';
 
 declare const XLSX: any;
@@ -53,7 +53,7 @@ const SmartDateInput: React.FC<{
   );
 };
 
-const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: User[], onUpdateDocument?: (id: string, updates: Partial<Document>) => void, currentUser?: User }> = ({ documents, tasks, users, onUpdateDocument, currentUser }) => {
+const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: User[], onUpdateDocument?: (id: string, updates: Partial<Document>) => void, onDeleteDocument?: (id: string) => void, currentUser?: User }> = ({ documents, tasks, users, onUpdateDocument, onDeleteDocument, currentUser }) => {
   const [keyword, setKeyword] = useState('');
   const [staffId, setStaffId] = useState('all');
   const [status, setStatus] = useState('all');
@@ -217,7 +217,7 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
               <th className="px-6 py-4">Cán bộ xử lý</th>
               <th className="px-6 py-4">Trạng thái</th>
               <th className="px-6 py-4">Hạn/Ghi chú</th>
-              {currentUser?.notes?.includes('VT') && <th className="px-6 py-4 text-center">Sửa</th>}
+              {currentUser?.notes?.includes('VT') && <th className="px-6 py-4 text-center">Thao tác</th>}
             </tr>
           </thead>
           <tbody>
@@ -270,11 +270,20 @@ const DocumentSearch: React.FC<{ documents: Document[], tasks: Task[], users: Us
                   </td>
                   {currentUser?.notes?.includes('VT') && (
                     <td className="px-6 py-4 text-center">
-                      {linkedTask?.status !== TaskStatus.COMPLETED && (
-                        <button onClick={() => handleEditClick(doc)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
-                          <Edit2 size={16} />
+                      <div className="flex items-center justify-center space-x-1">
+                        {linkedTask?.status !== TaskStatus.COMPLETED && (
+                          <button onClick={() => handleEditClick(doc)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Sửa">
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => onDeleteDocument?.(doc.id)} 
+                          className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                          title="Xóa"
+                        >
+                          <Trash2 size={16} />
                         </button>
-                      )}
+                      </div>
                     </td>
                   )}
                 </tr>
