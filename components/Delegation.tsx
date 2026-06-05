@@ -173,6 +173,10 @@ const Delegation: React.FC<DelegationProps> = ({ currentUser, users, documents, 
       finalCollaboratorIds.shift();
     }
 
+    if (finalLeadId) {
+      finalCollaboratorIds = finalCollaboratorIds.filter(id => id !== finalLeadId);
+    }
+
     if (!content.trim() || !finalLeadId) {
       alert('Vui lòng nhập nội dung và chọn nhân sự thực hiện!');
       return;

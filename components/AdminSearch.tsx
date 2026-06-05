@@ -338,27 +338,28 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
           {isAD && <span className="text-[10px] font-black text-amber-600 flex items-center bg-amber-50 px-3 py-1 rounded-full border border-amber-100 uppercase tracking-tighter"><ShieldAlert size={12} className="mr-1" /> Admin Panel</span>}
         </div>
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-xs whitespace-nowrap">
+          <table className="w-full text-left text-xs whitespace-nowrap table-auto">
             <thead className="bg-slate-50/80 border-b border-slate-100">
               <tr>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Phụ trách</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nhóm việc</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Số VB đi</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Ký hiệu/Số đến</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Ngày VB/Đến</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Đơn vị/MST</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Nội dung</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
-                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Hạn chót</th>
-                {isAD && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Pass</th>}
-                {isManager && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center">Sửa</th>}
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest w-48 min-w-[185px]">Phụ trách</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest w-24 min-w-[100px]">Nhóm việc</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center w-20 min-w-[85px]">Số VB đi</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest w-28 min-w-[110px]">Ký hiệu/Số đến</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest w-28 min-w-[110px]">Ngày VB/Đến</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest w-56 min-w-[200px] max-w-xs whitespace-normal">Đơn vị/MST</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest min-w-[380px] whitespace-normal">Nội dung</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center w-24 min-w-[95px]">Trạng thái</th>
+                <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest w-36 min-w-[140px]">Hạn chót</th>
+                {isAD && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center w-16 min-w-[65px]">Pass</th>}
+                {isManager && <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-center w-16 min-w-[65px]">Sửa</th>}
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length > 0 ? filteredTasks.map(task => {
                 const assigner = users.find(u => u.id === task.userId);
                 const lead = users.find(u => u.id === task.leadId);
-                const collaborators = users.filter(u => task.collaboratorIds.includes(u.id));
+                // Loại bỏ người chủ trì khỏi danh sách phối hợp để tránh lặp tên trong danh sách hiển thị
+                const collaborators = users.filter(u => task.collaboratorIds.includes(u.id) && u.id !== task.leadId);
                 const forwarders = users.filter(u => task.forwarderIds?.includes(u.id));
                 
                 const isCompleted = task.status === TaskStatus.COMPLETED;
@@ -367,7 +368,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                 
                 return (
                   <tr key={task.id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${isOverdue ? 'bg-rose-50/30' : ''}`}>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 w-48 min-w-[185px] whitespace-normal">
                       <div className="flex flex-col space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                            <span className="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded-md text-slate-400 font-black uppercase">Giao</span>
@@ -395,13 +396,13 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 w-24 min-w-[100px] whitespace-normal">
                       <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200">{task.category}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center w-20 min-w-[85px] whitespace-normal">
                       <div className="font-bold text-indigo-600">{task.outDocNumber || '-'}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 w-28 min-w-[110px] whitespace-normal">
                       {linkedDoc ? (
                         <>
                           <div className="font-bold text-slate-800">{linkedDoc.refCode}</div>
@@ -409,7 +410,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                         </>
                       ) : <span className="text-slate-300 italic text-[10px]">Không có</span>}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 w-28 min-w-[110px] whitespace-normal">
                       {linkedDoc ? (
                         <>
                           <div className="font-medium text-slate-600">{linkedDoc.docDate ? linkedDoc.docDate.split('-').reverse().join('/') : '-'}</div>
@@ -417,18 +418,18 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                         </>
                       ) : <span className="text-slate-300 italic text-[10px]">-</span>}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 w-56 min-w-[200px] max-w-xs whitespace-normal">
                       {linkedDoc ? (
                         <>
-                          <div className="font-medium text-slate-700">{linkedDoc.senderUnit || '-'}</div>
-                          <div className="text-[10px] font-black text-indigo-500 uppercase">{linkedDoc.taxCode || '-'}</div>
+                          <div className="font-medium text-slate-700 leading-normal">{linkedDoc.senderUnit || '-'}</div>
+                          <div className="text-[10px] font-black text-indigo-500 uppercase mt-1">{linkedDoc.taxCode || '-'}</div>
                         </>
                       ) : <span className="text-slate-300 italic text-[10px]">-</span>}
                     </td>
-                    <td className="px-6 py-4 max-w-md overflow-hidden text-ellipsis whitespace-normal">
+                    <td className="px-6 py-4 min-w-[380px] whitespace-normal">
                       <p className="font-medium text-slate-600 leading-relaxed text-sm">{task.content}</p>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4 text-center w-24 min-w-[95px] whitespace-normal">
                       <div className="flex flex-col items-center space-y-1">
                         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
                           isCompleted ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
@@ -436,7 +437,7 @@ const AdminSearch: React.FC<AdminSearchProps> = ({ users, tasks, documents, isAd
                         }`}>{isOverdue ? 'Quá hạn' : task.status}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono font-bold text-slate-400">
+                    <td className="px-6 py-4 w-36 min-w-[140px] font-mono font-bold text-slate-400 whitespace-normal">
                       {task.deadline ? formatFullDateTime(task.deadline) : '-'}
                     </td>
                     {isAD && (

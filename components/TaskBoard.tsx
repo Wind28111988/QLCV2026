@@ -72,7 +72,7 @@ const ForwardModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task;
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-8 bg-indigo-600 text-white flex justify-between items-center"><h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3"><Send size={24} /> Chuyển tiếp công việc</h2><button onClick={onClose}><X size={20} /></button></div>
-        <form onSubmit={e => { e.preventDefault(); if(leadId) onForward(task.id, leadId, collaboratorIds, selectedUnit); onClose(); }} className="p-8 space-y-6 overflow-y-auto">
+        <form onSubmit={e => { e.preventDefault(); if(leadId) { const finalCollabs = collaboratorIds.filter(id => id !== leadId); onForward(task.id, leadId, finalCollabs, selectedUnit); } onClose(); }} className="p-8 space-y-6 overflow-y-auto">
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-slate-600 text-sm">"{task.content}"</div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -199,7 +199,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
               {filteredTasks.filter(t => t.status === status).map(task => {
                 const canForward = task.leadId === currentUser.id && task.status === TaskStatus.TO_DO;
                 const lead = allUsers.find(u => u.id === task.leadId);
-                const collaborators = allUsers.filter(u => task.collaboratorIds.includes(u.id));
+                // Loại bỏ người chủ trì (leadId) khỏi danh sách phối hợp để tránh lặp tên của cùng một người
+                const collaborators = allUsers.filter(u => task.collaboratorIds.includes(u.id) && u.id !== task.leadId);
                 const linkedDoc = task.documentId ? documents.find(d => d.id === task.documentId) : null;
                 
                 const leadName = lead?.name || 'N/A';
@@ -272,13 +273,24 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, documents, onAddTask, onUp
                                 </button>
                               )
                             )}
-                            {task.leadId === currentUser.id && (() => {
-                              const collabsDone = task.collaboratorIds.length === 0 || task.collaboratorIds.every(id => task.completedBy?.includes(id));
+                            {(task.leadId === currentUser.id || task.userId === currentUser.id) && (() => {
+                              // Loại bỏ người chủ trì khỏi danh sách phối hợp khi kiểm tra tình trạng báo hoàn thành phối hợp
+                              const actualCollabIds = task.collaboratorIds.filter(id => id !== task.leadId);
+                              const collabsDone = actualCollabIds.length === 0 || actualCollabIds.every(id => task.completedBy?.includes(id));
+                              const handleComplete = () => {
+                                if (!collabsDone) {
+                                  if (window.confirm("Vẫn còn người phối hợp chưa báo xong. Bạn có chắc chắn muốn hoàn thành công việc này không?")) {
+                                    onUpdateStatus(task.id, TaskStatus.COMPLETED);
+                                  }
+                                } else {
+                                  onUpdateStatus(task.id, TaskStatus.COMPLETED);
+                                }
+                              };
                               return (
                                 <button 
-                                  onClick={() => collabsDone && onUpdateStatus(task.id, TaskStatus.COMPLETED)} 
-                                  title={!collabsDone ? "Chờ người phối hợp báo xong" : ""}
-                                  className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-colors ${!collabsDone ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}
+                                  onClick={handleComplete} 
+                                  title={!collabsDone ? "Chờ người phối hợp báo xong. Click để hoàn thành trực tiếp." : "Hoàn thành công việc"}
+                                  className="px-3 py-1 rounded-lg text-[9px] font-black uppercase transition-colors bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white"
                                 >
                                   Hoàn thành
                                 </button>
